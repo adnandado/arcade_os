@@ -30,13 +30,10 @@ class GameTile extends StatelessWidget {
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () {
-                // Koristimo prazan naslov prozora i zatim putanju u navodnicima
                 String command = '"" "${game.executablePath}"';
 
-                // Ispisivanje komande koju šaljemo u cmd
                 print('Running command: cmd /c start $command');
 
-                // Pokreni igru koristeći cmd sa start komandom
                 Process.start('cmd', ['/c', 'start', '', game.executablePath])
                     .then((process) {
                       process.stdout.transform(utf8.decoder).listen((data) {

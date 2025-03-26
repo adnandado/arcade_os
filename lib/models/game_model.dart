@@ -23,7 +23,8 @@ class Game {
       String gameName = basename(gameFolder.path);
       print('Extracted game name: $gameName');
 
-      String executablePath = join(gameFolder.path, '$gameName.exe');
+      String executablePath = join(gameFolder.path, '$gameName.png');
+      //png tijekom testiranja
       String coverImagePath = join(gameFolder.path, '${gameName}.png');
 
       print('Checking cover image path: $coverImagePath');

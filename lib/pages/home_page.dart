@@ -12,7 +12,7 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(title: Text('Arcade OS')),
       body: GridView.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3, // Prikaz igara u gridu sa 3 kolone
+          crossAxisCount: 3,
         ),
         itemCount: games.length,
         itemBuilder: (context, index) {
