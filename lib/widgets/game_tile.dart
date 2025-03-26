@@ -1,0 +1,61 @@
+import 'package:flutter/material.dart';
+import 'package:arcade_os/models/game_model.dart';
+import 'dart:io';
+import 'dart:convert';
+
+class GameTile extends StatelessWidget {
+  final Game game;
+
+  const GameTile({Key? key, required this.game}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.all(8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Image.file(
+              File(game.coverImagePath),
+              height: 150,
+              fit: BoxFit.cover,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              game.name,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () {
+                // Koristimo prazan naslov prozora i zatim putanju u navodnicima
+                String command = '"" "${game.executablePath}"';
+
+                // Ispisivanje komande koju šaljemo u cmd
+                print('Running command: cmd /c start $command');
+
+                // Pokreni igru koristeći cmd sa start komandom
+                Process.start('cmd', ['/c', 'start', '', game.executablePath])
+                    .then((process) {
+                      process.stdout.transform(utf8.decoder).listen((data) {
+                        print('STDOUT: $data');
+                      });
+                      process.stderr.transform(utf8.decoder).listen((data) {
+                        print('STDERR: $data');
+                      });
+                      print('Game started: ${game.name}');
+                    })
+                    .catchError((error) {
+                      print('Error starting game: $error');
+                    });
+              },
+              child: const Text('Play'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
