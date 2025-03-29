@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:arcade_os/models/game_model.dart';
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:arcade_os/models/game.dart';
+import 'package:arcade_os/services/game_service.dart';
 
 class GameTile extends StatelessWidget {
   final Game game;
@@ -17,8 +18,9 @@ class GameTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Prikaz slike igre (koristi coverImagePath)
             Image.file(
-              File(game.coverImagePath),
+              File(game.coverImagePath), // Putanja do slike igre
               height: 150,
               fit: BoxFit.cover,
             ),
@@ -29,12 +31,22 @@ class GameTile extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             ElevatedButton(
-              onPressed: () {
-                String command = '"" "${game.executablePath}"';
+              onPressed: () async {
+                // Ažuriraj broj odigranih puta u bazi
+                await GameService.updatePlayCount(game.name);
+
+                // Pokretanje igre
+                String command =
+                    game.executablePath; // Pokreni igru koristeći executablePath
 
                 print('Running command: cmd /c start $command');
 
-                Process.start('cmd', ['/c', 'start', '', game.executablePath])
+                Process.start('cmd', [
+                      '/c',
+                      'start',
+                      '',
+                      command, // Koristi executablePath za pokretanje igre
+                    ]) // Pokretanje igre
                     .then((process) {
                       process.stdout.transform(utf8.decoder).listen((data) {
                         print('STDOUT: $data');
