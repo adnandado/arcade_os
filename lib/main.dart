@@ -15,6 +15,8 @@ void main() async {
 }
 
 class ArcadeOSApp extends StatelessWidget {
+  const ArcadeOSApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

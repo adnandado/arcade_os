@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import '../models/game.dart'; // Import Game
+import '../models/game.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -26,7 +26,9 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         playCount INTEGER DEFAULT 0,
-        dateAdded TEXT NOT NULL
+        dateAdded TEXT NOT NULL,
+            lastPlayed TEXT
+
       )
     ''');
   }

@@ -1,34 +1,116 @@
 import 'package:flutter/material.dart';
 import 'package:arcade_os/services/game_service.dart';
-import 'package:arcade_os/models/game.dart'; // Import Game model
+import 'package:arcade_os/models/game.dart';
+import 'dart:io';
 import 'package:arcade_os/widgets/game_tile.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<Game>>(
-      future:
-          GameService.loadGamesFromDirectory(), // Pozivaj funkciju koja učitava igre iz direktorija
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(child: Text('No games found.'));
-        } else {
-          List<Game> games = snapshot.data!;
-          return GridView.builder(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
+  _HomePageState createState() => _HomePageState();
+}
+
+// TO DO
+// Add live updating for sorting
+// Full screen support
+// Game Pad Support
+// UI Upgrade
+// Make cover photos the play button
+
+class _HomePageState extends State<HomePage> {
+  List<Game> recentlyPlayed = [];
+  List<Game> popularGames = [];
+  List<Game> recentlyAdded = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGames();
+  }
+
+  Future<void> _loadGames() async {
+    List<Game> games = await Game.getGamesFromDirectory(
+      'C:\\Users\\Omen\\Desktop\\games',
+    );
+
+    List<Game> gamesFromDB = await GameService.loadGamesFromDB();
+
+    for (var game in games) {
+      var dbGame = gamesFromDB.firstWhere(
+        (dbGame) => dbGame.name == game.name,
+        orElse:
+            () => Game(
+              name: game.name,
+              executablePath: game.executablePath,
+              coverImagePath: game.coverImagePath,
+              playCount: 0,
+              dateAdded: DateTime.now().toIso8601String(),
+              lastPlayed: null,
             ),
+      );
+
+      if (dbGame != null) {
+        setState(() {
+          game.playCount = dbGame.playCount;
+          game.dateAdded = dbGame.dateAdded;
+          game.lastPlayed = dbGame.lastPlayed;
+        });
+      }
+    }
+
+    setState(() {
+      recentlyPlayed = List.from(games)
+        ..sort((a, b) => (b.lastPlayed ?? "").compareTo(a.lastPlayed ?? ""));
+
+      popularGames = List.from(games)
+        ..sort((a, b) => (b.playCount).compareTo(a.playCount));
+
+      recentlyAdded = List.from(games)
+        ..sort((a, b) => (b.dateAdded).compareTo(a.dateAdded));
+    });
+  }
+
+  Widget _buildGameRow(String title, List<Game> games) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(
+            title,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ),
+        Container(
+          height: 120,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
             itemCount: games.length,
             itemBuilder: (context, index) {
-              return GameTile(game: games[index]);
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: GameTile(game: games[index]),
+              );
             },
-          );
-        }
-      },
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Garaža OS")),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildGameRow("Most Recently Played", recentlyPlayed),
+            _buildGameRow("Popular Games", popularGames),
+            _buildGameRow("Recently Added", recentlyAdded),
+          ],
+        ),
+      ),
     );
   }
 }

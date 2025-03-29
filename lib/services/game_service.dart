@@ -1,7 +1,5 @@
-import 'dart:io';
 import 'package:arcade_os/database/database_helper.dart';
 import 'package:arcade_os/models/game.dart';
-import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 class GameService {
@@ -46,12 +44,14 @@ class GameService {
     });
   }
 
-  static Future<void> updatePlayCount(String gameName) async {
+  static Future<void> updatePlayData(String gameName) async {
     final db = await DatabaseHelper.instance.database;
 
+    String currentTime = DateTime.now().toIso8601String();
+
     await db.rawUpdate(
-      'UPDATE games SET playCount = playCount + 1 WHERE name = ?',
-      [gameName],
+      'UPDATE games SET playCount = playCount + 1, lastPlayed = ? WHERE name = ?',
+      [currentTime, gameName],
     );
   }
 }
