@@ -1,3 +1,4 @@
+import 'package:arcade_os/config/config.dart';
 import 'package:arcade_os/models/game.dart';
 import 'package:arcade_os/services/game_service.dart';
 import 'package:flutter/material.dart';
@@ -7,15 +8,15 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:window_manager/window_manager.dart';
 
 void main() async {
+  await Config.initialize();
   WidgetsFlutterBinding.ensureInitialized();
 
   await windowManager.ensureInitialized();
 
   databaseFactory = databaseFactoryFfi;
   List<Game> gamesFromDirectory = await GameService.loadGamesFromDirectory();
-  await windowManager.setFullScreen(true);
+ //  await windowManager.setFullScreen(true);
   await GameService.saveGamesToDatabase(gamesFromDirectory);
-
   runApp(ArcadeOSApp());
 }
 

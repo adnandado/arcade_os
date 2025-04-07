@@ -1,10 +1,11 @@
+import 'package:arcade_os/config/config.dart';
 import 'package:arcade_os/database/database_helper.dart';
 import 'package:arcade_os/models/game.dart';
 import 'package:sqflite/sqflite.dart';
 
 class GameService {
   static Future<List<Game>> loadGamesFromDirectory() async {
-    return Game.getGamesFromDirectory('C:\\Users\\Omen\\Desktop\\games');
+    return Game.getGamesFromDirectory(Config.gamesDirectory);
   }
 
   static Future<void> saveGamesToDatabase(List<Game> games) async {
