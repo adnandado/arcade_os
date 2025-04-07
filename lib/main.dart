@@ -13,7 +13,7 @@ void main() async {
 
   databaseFactory = databaseFactoryFfi;
   List<Game> gamesFromDirectory = await GameService.loadGamesFromDirectory();
-  //await windowManager.setFullScreen(true);
+  await windowManager.setFullScreen(true);
   await GameService.saveGamesToDatabase(gamesFromDirectory);
 
   runApp(ArcadeOSApp());

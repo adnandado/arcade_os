@@ -11,7 +11,6 @@ class HomePage extends StatefulWidget {
 
 // TO DO
 // Add live updating for sorting
-// Full screen support
 // Game Pad Support
 // UI Upgrade
 // Make cover photos the play button
@@ -77,7 +76,11 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.all(8.0),
           child: Text(
             title,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
         Container(
@@ -100,15 +103,27 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Garaža OS")),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildGameRow("Most Recently Played", recentlyPlayed),
-            _buildGameRow("Popular Games", popularGames),
-            _buildGameRow("Recently Added", recentlyAdded),
-          ],
+      appBar: AppBar(title: Text("Garaža OS"), backgroundColor: Colors.black87),
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/background.png'),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+              Colors.black.withOpacity(0.4),
+              BlendMode.darken,
+            ),
+          ),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildGameRow("Most Recently Played", recentlyPlayed),
+              _buildGameRow("Popular Games", popularGames),
+              _buildGameRow("Recently Added", recentlyAdded),
+            ],
+          ),
         ),
       ),
     );
