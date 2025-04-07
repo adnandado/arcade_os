@@ -11,54 +11,60 @@ class GameTile extends StatelessWidget {
   const GameTile({super.key, required this.game, this.onGamePlayed, this.isSelected = false});
 
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: isSelected ? Colors.blueGrey : null, // Oboji selektovanu igru
-      margin: const EdgeInsets.all(8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
+Widget build(BuildContext context) {
+  return SizedBox(
+    height: 400, // Set height
+    width: 200,  // Set width
+    child: GestureDetector(
+      onTap: () async {
+        onGamePlayed?.call();
+        GameService.updatePlayData(game.name);
+        String command = game.executablePath;
+        Process.start('cmd', ['/c', 'start', '', command])
+            .then((process) {
+              process.stdout.transform(utf8.decoder).listen((data) {
+                print('STDOUT: $data');
+              });
+              process.stderr.transform(utf8.decoder).listen((data) {
+                print('STDERR: $data');
+              });
+            })
+            .catchError((error) {
+              print('Error starting game: $error');
+            });
+      },
+      child: Card(
+        color: isSelected ? Colors.blueGrey : Colors.transparent,
+        elevation: 0, // Oboji selektovanu igru
+        margin: const EdgeInsets.all(8.0),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Image.file(
                 File(game.coverImagePath),
-                height: 150,
+                height: 300,
+                width: 200,
                 fit: BoxFit.cover,
               ),
-              const SizedBox(height: 8),
-              Text(
-                game.name,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+              const SizedBox(height: 5),
+              Align(
+                alignment: Alignment.centerLeft, // Align text to the left
+                child: Text(
+                  game.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.white, // Ensure text color is white
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: () async {
-                  onGamePlayed?.call();
-                  GameService.updatePlayData(game.name);
-                  String command = game.executablePath;
-                  Process.start('cmd', ['/c', 'start', '', command])
-                      .then((process) {
-                        process.stdout.transform(utf8.decoder).listen((data) {
-                          print('STDOUT: $data');
-                        });
-                        process.stderr.transform(utf8.decoder).listen((data) {
-                          print('STDERR: $data');
-                        });
-                      })
-                      .catchError((error) {
-                        print('Error starting game: $error');
-                      });
-                },
-                child: const Text('Play'),
-              ),
+              
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
