@@ -33,7 +33,7 @@ class Game {
   }
 
   static Game fromMap(Map<String, dynamic> map, String directoryPath) {
-    String executablePath = join(directoryPath, map['name'] + '.exe');
+    String executablePath = join(directoryPath, map['name'] + '.png');
     String coverImagePath = join(directoryPath, map['name'] + '.png');
 
     return Game(
@@ -54,7 +54,7 @@ class Game {
 
     for (var gameFolder in gameFolders) {
       String gameName = basename(gameFolder.path);
-      String executablePath = join(gameFolder.path, '$gameName.exe');
+      String executablePath = join(gameFolder.path, '$gameName.png');
       String coverImagePath = join(gameFolder.path, '$gameName.png');
 
       if (File(executablePath).existsSync() &&

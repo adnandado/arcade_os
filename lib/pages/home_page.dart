@@ -3,6 +3,7 @@ import 'package:arcade_os/services/game_service.dart';
 import 'package:arcade_os/models/game.dart';
 import 'dart:io';
 import 'package:arcade_os/widgets/game_tile.dart';
+import 'package:watcher/watcher.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -19,11 +20,13 @@ class _HomePageState extends State<HomePage> {
   List<Game> recentlyPlayed = [];
   List<Game> popularGames = [];
   List<Game> recentlyAdded = [];
+  DirectoryWatcher? _watcher;
 
   @override
   void initState() {
     super.initState();
     _loadGames();
+    _startWatchingFolder();
   }
 
   Future<void> _loadGames() async {
@@ -91,7 +94,12 @@ class _HomePageState extends State<HomePage> {
             itemBuilder: (context, index) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: GameTile(game: games[index]),
+                child: GameTile(
+                  game: games[index],
+                  onGamePlayed: () {
+                    _loadGames();
+                  },
+                ),
               );
             },
           ),
@@ -127,5 +135,14 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  void _startWatchingFolder() {
+    final path = 'C:\\Users\\Omen\\Desktop\\games';
+    _watcher = DirectoryWatcher(path);
+    _watcher!.events.listen((event) {
+      print('Detected change in folder: ${event.type} ${event.path}');
+      _loadGames();
+    });
   }
 }

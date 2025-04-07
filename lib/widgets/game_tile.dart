@@ -6,8 +6,9 @@ import 'package:arcade_os/services/game_service.dart';
 
 class GameTile extends StatelessWidget {
   final Game game;
+  final VoidCallback? onGamePlayed;
 
-  const GameTile({super.key, required this.game});
+  const GameTile({super.key, required this.game, this.onGamePlayed});
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +37,7 @@ class GameTile extends StatelessWidget {
               ElevatedButton(
                 onPressed: () async {
                   await GameService.updatePlayData(game.name);
+                  onGamePlayed?.call();
 
                   String command = game.executablePath;
 
