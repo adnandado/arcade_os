@@ -8,6 +8,7 @@ import 'package:arcade_os/models/game.dart';
 import 'package:arcade_os/widgets/game_tile.dart';
 import 'package:watcher/watcher.dart';
 import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -26,6 +27,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     ScrollController(),
   ];
 
+  final List<AudioPlayer> _switchSoundPlayers = [];
+  final AudioPlayer _perfectSoundPlayer = AudioPlayer();
+  int _currentSwitchPlayerIndex = 0;
+
   int selectedRowIndex = 0;
   int selectedGameIndex = 0;
   FocusNode _focusNode = FocusNode();
@@ -35,6 +40,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
+    for (int i = 0; i < 3; i++) {
+      _switchSoundPlayers.add(AudioPlayer());
+    }
+
     _loadGames();
     _startWatchingFolder();
 
@@ -50,9 +60,50 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    for (var player in _switchSoundPlayers) {
+      player.dispose();
+    }
+    _perfectSoundPlayer.dispose();
     _zoomController.dispose();
     _focusNode.dispose();
+    _verticalScrollController.dispose();
+    for (var controller in _horizontalScrollControllers) {
+      controller.dispose();
+    }
     super.dispose();
+  }
+
+  Future<void> _playSwitchSound() async {
+    try {
+      final player = _switchSoundPlayers[_currentSwitchPlayerIndex];
+      await player.stop();
+      await player.play(AssetSource('sounds/switch.mp3'));
+      _currentSwitchPlayerIndex =
+          (_currentSwitchPlayerIndex + 1) % _switchSoundPlayers.length;
+    } catch (e) {
+      debugPrint('Error playing switch sound: $e');
+    }
+  }
+
+  Future<void> _playRowSound() async {
+    try {
+      final player = _switchSoundPlayers[_currentSwitchPlayerIndex];
+      await player.stop();
+      await player.play(AssetSource('sounds/row-switch.mp3'));
+      _currentSwitchPlayerIndex =
+          (_currentSwitchPlayerIndex + 1) % _switchSoundPlayers.length;
+    } catch (e) {
+      debugPrint('Error playing switch sound: $e');
+    }
+  }
+
+  Future<void> _playPerfectSound() async {
+    try {
+      await _perfectSoundPlayer.stop();
+      await _perfectSoundPlayer.play(AssetSource('sounds/perfect.mp3'));
+    } catch (e) {
+      debugPrint('Error playing perfect sound: $e');
+    }
   }
 
   Future<void> _loadGames() async {
@@ -73,22 +124,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
       );
 
-      if (dbGame != null) {
-        setState(() {
-          game.playCount = dbGame.playCount;
-          game.dateAdded = dbGame.dateAdded;
-          game.lastPlayed = dbGame.lastPlayed;
-        });
-      }
+      setState(() {
+        game.playCount = dbGame.playCount;
+        game.dateAdded = dbGame.dateAdded;
+        game.lastPlayed = dbGame.lastPlayed;
+      });
     }
 
     setState(() {
       recentlyPlayed = List.from(games)
         ..sort((a, b) => (b.lastPlayed ?? "").compareTo(a.lastPlayed ?? ""));
-
       popularGames = List.from(games)
         ..sort((a, b) => (b.playCount).compareTo(a.playCount));
-
       recentlyAdded = List.from(games)
         ..sort((a, b) => (b.dateAdded).compareTo(a.dateAdded));
     });
@@ -97,6 +144,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void _handleKeyEvent(RawKeyEvent event) {
     if (event is RawKeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+        _playRowSound();
         if (selectedRowIndex > 0) {
           setState(() {
             selectedRowIndex--;
@@ -106,6 +154,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         }
       } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
         if (selectedRowIndex < 2) {
+          _playRowSound();
+
           setState(() {
             selectedRowIndex++;
             selectedGameIndex = 0;
@@ -113,6 +163,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           scrollToSelection();
         }
       } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        _playSwitchSound();
         if (selectedGameIndex > 0) {
           setState(() {
             selectedGameIndex--;
@@ -120,6 +171,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           scrollToSelection();
         }
       } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+        _playSwitchSound();
         if (selectedGameIndex <
             _getGameListByRowIndex(selectedRowIndex).length - 1) {
           setState(() {
@@ -146,22 +198,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
-  void _startGame(Game game) {
+  Future<void> _startGame(Game game) async {
+    await _playPerfectSound();
+
     GameService.updatePlayData(game.name);
     String command = game.executablePath;
-    Process.start('cmd', ['/c', 'start', '', command])
-        .then((process) {
-          process.stdout.transform(utf8.decoder).listen((data) {
-            print('STDOUT: $data');
-          });
-          process.stderr.transform(utf8.decoder).listen((data) {
-            print('STDERR: $data');
-          });
-          print('Game started: ${game.name}');
-        })
-        .catchError((error) {
-          print('Error starting game: $error');
-        });
+    try {
+      final process = await Process.start('cmd', ['/c', 'start', '', command]);
+      process.stdout.transform(utf8.decoder).listen(print);
+      process.stderr.transform(utf8.decoder).listen(print);
+      print('Game started: ${game.name}');
+    } catch (error) {
+      print('Error starting game: $error');
+    }
   }
 
   void scrollToSelection() {
@@ -254,7 +303,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                         const SizedBox(width: 15),
                         Image.asset(
-                          'assets/images/logo1.png', // Zamijeni sa svojim putem do slike
+                          'assets/images/logo1.png',
                           height: 45,
                           width: 45,
                         ),
@@ -270,7 +319,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               final currentTime =
                                   snapshot.data ?? DateTime.now();
                               final formattedTime =
-                                  "${currentTime.hour.toString().padLeft(2, '0')}:${currentTime.minute.toString().padLeft(2, '0')}:${currentTime.second.toString().padLeft(2, '0')}";
+                                  "${currentTime.hour.toString().padLeft(2, '0')}:"
+                                  "${currentTime.minute.toString().padLeft(2, '0')}:"
+                                  "${currentTime.second.toString().padLeft(2, '0')}";
                               return Text(
                                 formattedTime,
                                 style: TextStyle(
@@ -322,9 +373,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: GameTile(
                   game: games[index],
-                  onGamePlayed: () {
-                    _loadGames();
-                  },
+                  onGamePlayed: _loadGames,
                   isSelected: isSelected,
                 ),
               );

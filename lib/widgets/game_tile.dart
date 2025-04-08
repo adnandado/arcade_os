@@ -43,7 +43,7 @@ class GameTile extends StatelessWidget {
         child: Card(
           color: Colors.transparent,
           elevation: 0,
-          margin: const EdgeInsets.all(4.0),
+          margin: const EdgeInsets.all(8.0),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
