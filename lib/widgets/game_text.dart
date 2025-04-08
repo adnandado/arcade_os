@@ -11,7 +11,7 @@ class MarqueeText extends StatefulWidget {
     required this.text,
     required this.containerWidth,
     this.style,
-    this.duration = const Duration(seconds: 2),
+    this.duration = const Duration(seconds: 5),
   });
 
   @override
@@ -53,7 +53,7 @@ class _MarqueeTextState extends State<MarqueeText> {
   }
 
   void _startScrolling() {
-    Future.delayed(const Duration(milliseconds: 100), () async {
+    Future.delayed(const Duration(milliseconds: 1500), () async {
       if (!mounted) return;
 
       while (mounted) {
@@ -62,7 +62,7 @@ class _MarqueeTextState extends State<MarqueeText> {
           duration: widget.duration,
           curve: Curves.linear,
         );
-        await Future.delayed(const Duration(milliseconds: 500));
+        await Future.delayed(const Duration(milliseconds: 1500));
 
         if (mounted) {
           await _scrollController.animateTo(
@@ -84,7 +84,7 @@ class _MarqueeTextState extends State<MarqueeText> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: widget.containerWidth,
+      width: widget.containerWidth + 50,
       child: SingleChildScrollView(
         controller: _scrollController,
         scrollDirection: Axis.horizontal,
