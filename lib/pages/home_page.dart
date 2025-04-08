@@ -31,6 +31,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   FocusNode _focusNode = FocusNode();
   late AnimationController _zoomController;
   late Animation<double> _zoomAnimation;
+  late Animation<double> _moveAnimation;
 
   @override
   void initState() {
@@ -38,12 +39,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _loadGames();
     _startWatchingFolder();
 
+    // Animation for zoom
     _zoomController = AnimationController(
       vsync: this,
-      duration: Duration(seconds: 1),
+      duration: Duration(seconds: 2),
     )..repeat(reverse: true);
 
+    // Zoom animation from 1.0 to 3.0
     _zoomAnimation = Tween<double>(begin: 1.0, end: 3.0).animate(
+      CurvedAnimation(parent: _zoomController, curve: Curves.easeInOut),
+    );
+
+    // Move animation for background (bottom to top)
+    _moveAnimation = Tween<double>(begin: 1.0, end: -1.0).animate(
       CurvedAnimation(parent: _zoomController, curve: Curves.easeInOut),
     );
   }
@@ -85,10 +93,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     setState(() {
       recentlyPlayed = List.from(games)
         ..sort((a, b) => (b.lastPlayed ?? "").compareTo(a.lastPlayed ?? ""));
-
       popularGames = List.from(games)
         ..sort((a, b) => (b.playCount).compareTo(a.playCount));
-
       recentlyAdded = List.from(games)
         ..sort((a, b) => (b.dateAdded).compareTo(a.dateAdded));
     });
@@ -199,96 +205,103 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       body: RawKeyboardListener(
         focusNode: _focusNode,
         onKey: _handleKeyEvent,
-        child: AnimatedBuilder(
-          animation: _zoomController,
-          builder: (context, child) {
-            return Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/background.png'),
-                  fit: BoxFit.cover,
-                  scale: _zoomAnimation.value,
-                  colorFilter: ColorFilter.mode(
-                    Colors.black.withOpacity(0.4),
-                    BlendMode.darken,
-                  ),
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      controller: _verticalScrollController,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildGameRow(
-                            "Most Recently Played",
-                            recentlyPlayed,
-                            0,
-                          ),
-                          _buildGameRow("Popular Games", popularGames, 1),
-                          _buildGameRow("Recently Added", recentlyAdded, 2),
-                        ],
+        child: Stack(
+          children: [
+            // Pozadina
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _zoomController,
+                builder: (context, child) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage('assets/images/background.png'),
+                        fit: BoxFit.cover,
+                        scale: _zoomAnimation.value,
+                        colorFilter: ColorFilter.mode(
+                          Colors.black.withOpacity(0.4),
+                          BlendMode.darken,
+                        ),
                       ),
                     ),
-                  ),
-                  Container(
-                    alignment: Alignment.bottomCenter,
-                    width: double.infinity,
-                    padding: const EdgeInsets.only(right: 8.0, bottom: 8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  );
+                },
+              ),
+            ),
+            // Sadržaj aplikacije
+            Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _verticalScrollController,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 25.0),
-                          child: Text(
-                            "v1.0.0",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                        _buildGameRow(
+                          "Most Recently Played",
+                          recentlyPlayed,
+                          0,
                         ),
-                        const SizedBox(width: 15),
-                        Image.asset(
-                          'assets/images/logo1.png', // Zamijeni sa svojim putem do slike
-                          height: 45,
-                          width: 45,
-                        ),
-                        const SizedBox(width: 15),
-                        Padding(
-                          padding: const EdgeInsets.only(right: 25.0),
-                          child: StreamBuilder<DateTime>(
-                            stream: Stream.periodic(
-                              const Duration(seconds: 1),
-                              (_) => DateTime.now(),
-                            ),
-                            builder: (context, snapshot) {
-                              final currentTime =
-                                  snapshot.data ?? DateTime.now();
-                              final formattedTime =
-                                  "${currentTime.hour.toString().padLeft(2, '0')}:${currentTime.minute.toString().padLeft(2, '0')}:${currentTime.second.toString().padLeft(2, '0')}";
-                              return Text(
-                                formattedTime,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+                        _buildGameRow("Popular Games", popularGames, 1),
+                        _buildGameRow("Recently Added", recentlyAdded, 2),
                       ],
                     ),
                   ),
-                ],
-              ),
-            );
-          },
+                ),
+                Container(
+                  alignment: Alignment.bottomCenter,
+                  width: double.infinity,
+                  padding: const EdgeInsets.only(right: 8.0, bottom: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 25.0),
+                        child: Text(
+                          "v1.0.0",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      Image.asset(
+                        'assets/images/logo1.png', // Zamijeni sa svojim putem do slike
+                        height: 45,
+                        width: 45,
+                      ),
+                      const SizedBox(width: 15),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 25.0),
+                        child: StreamBuilder<DateTime>(
+                          stream: Stream.periodic(
+                            const Duration(seconds: 1),
+                            (_) => DateTime.now(),
+                          ),
+                          builder: (context, snapshot) {
+                            final currentTime = snapshot.data ?? DateTime.now();
+                            final formattedTime =
+                                "${currentTime.hour.toString().padLeft(2, '0')}:${currentTime.minute.toString().padLeft(2, '0')}:${currentTime.second.toString().padLeft(2, '0')}";
+                            return Text(
+                              formattedTime,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -310,7 +323,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         ),
         Container(
-          height: 350,
+          height: 370,
           child: ListView.builder(
             controller: _horizontalScrollControllers[rowIndex],
             scrollDirection: Axis.horizontal,
