@@ -8,7 +8,7 @@ import 'package:arcade_os/services/game_service.dart';
 class GameTile extends StatelessWidget {
   final Game game;
   final VoidCallback? onGamePlayed;
-  final bool isSelected; // For indicating whether the game is selected
+  final bool isSelected;
 
   const GameTile({
     super.key,
@@ -20,8 +20,8 @@ class GameTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: isSelected ? 450 : 400, // Adjust height based on selection
-      width: isSelected ? 250 : 200, // Adjust width based on selection
+      height: isSelected ? 430 : 400,
+      width: isSelected ? 250 : 225,
       child: GestureDetector(
         onTap: () async {
           onGamePlayed?.call();
@@ -43,54 +43,48 @@ class GameTile extends StatelessWidget {
         child: Card(
           color: Colors.transparent,
           elevation: 0,
-          margin: const EdgeInsets.all(8.0),
+          margin: const EdgeInsets.all(4.0),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // AnimatedContainer to resize both the image and the card when selected
-                AnimatedContainer(
-                  duration: const Duration(
-                    milliseconds: 300,
-                  ), // Duration of resize animation
-                  curve: Curves.easeInOut, // Smooth curve for resizing
-                  height: isSelected ? 350 : 300, // Larger when selected
-                  width: isSelected ? 250 : 200, // Larger when selected
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color:
-                          isSelected
-                              ? const Color.fromARGB(
-                                255,
-                                233,
-                                183,
-                                2,
-                              ) // Yellow color for border
-                              : Colors
-                                  .transparent, // No border when not selected
-                      width: isSelected ? 4 : 0, // Border width when selected
-                    ),
-                    borderRadius: BorderRadius.circular(
-                      8,
-                    ), // Optional: round corners for the border
+                TweenAnimationBuilder(
+                  duration: const Duration(milliseconds: 300),
+                  tween: Tween<double>(
+                    begin: isSelected ? 300 : 275,
+                    end: isSelected ? 350 : 325,
                   ),
-                  child: AnimatedOpacity(
-                    duration: const Duration(
-                      milliseconds: 200,
-                    ), // Duration of opacity transition
-                    opacity:
-                        isSelected ? 1.0 : 0.7, // Fade effect when selected
-                    child: Image.file(
-                      File(game.coverImagePath),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                  builder: (context, double size, child) {
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      height: size,
+                      width: size,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color:
+                              isSelected
+                                  ? const Color.fromARGB(186, 233, 183, 2)
+                                  : Colors.transparent,
+                          width: isSelected ? 2 : 0,
+                        ),
+                        borderRadius: BorderRadius.circular(0),
+                      ),
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: isSelected ? 1.0 : 0.8,
+                        child: Image.file(
+                          File(game.coverImagePath),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 5),
-                // Marquee text when selected
                 AnimatedOpacity(
                   opacity: isSelected ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 200),
                   child:
                       isSelected
                           ? Align(
