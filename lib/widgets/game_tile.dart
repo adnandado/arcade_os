@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:arcade_os/widgets/game_text.dart';
 import 'package:flutter/material.dart';
 import 'package:arcade_os/models/game.dart';
@@ -27,16 +28,18 @@ class GameTile extends StatelessWidget {
           onGamePlayed?.call();
           GameService.updatePlayData(game.name);
           String command = game.executablePath;
-          Process.start('cmd', ['/c', 'start', '', command]).then((process) {
-            process.stdout.transform(utf8.decoder).listen((data) {
-              print('STDOUT: $data');
-            });
-            process.stderr.transform(utf8.decoder).listen((data) {
-              print('STDERR: $data');
-            });
-          }).catchError((error) {
-            print('Error starting game: $error');
-          });
+          Process.start('cmd', ['/c', 'start', '', command])
+              .then((process) {
+                process.stdout.transform(utf8.decoder).listen((data) {
+                  print('STDOUT: $data');
+                });
+                process.stderr.transform(utf8.decoder).listen((data) {
+                  print('STDERR: $data');
+                });
+              })
+              .catchError((error) {
+                print('Error starting game: $error');
+              });
         },
         child: Card(
           color: Colors.transparent,
@@ -54,17 +57,36 @@ class GameTile extends StatelessWidget {
                   ),
                   builder: (context, double size, child) {
                     return AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
+                      duration: const Duration(milliseconds: 30),
                       curve: Curves.easeInOut,
                       height: size,
                       width: size,
                       decoration: BoxDecoration(
-                        border: Border.all(
-                          color: isSelected
-                              ? const Color.fromARGB(186, 233, 183, 2)
-                              : Colors.transparent,
-                          width: isSelected ? 2 : 0,
-                        ),
+                        border:
+                            isSelected
+                                ? Border.all(
+                                  color: const Color.fromARGB(
+                                    186,
+                                    233,
+                                    183,
+                                    1,
+                                  ).withOpacity(
+                                    0.7 +
+                                        0.3 *
+                                            sin(
+                                              DateTime.now()
+                                                      .millisecondsSinceEpoch /
+                                                  400,
+                                            ),
+                                  ),
+                                  width:
+                                      2 +
+                                      sin(
+                                        DateTime.now().millisecondsSinceEpoch /
+                                            400,
+                                      ),
+                                )
+                                : null,
                         borderRadius: BorderRadius.circular(0),
                       ),
                       child: Stack(
@@ -81,9 +103,11 @@ class GameTile extends StatelessWidget {
                               duration: const Duration(seconds: 2),
                               curve: Curves.easeInOut,
                               builder: (context, value, child) {
-                                final double opacity = (value < 1.5)
-                                    ? 1.0 - (value - 1.0).clamp(0.0, 0.5) * 2
-                                    : 0.0;
+                                final double opacity =
+                                    (value < 1.5)
+                                        ? 1.0 -
+                                            (value - 1.0).clamp(0.0, 0.5) * 2
+                                        : 0.0;
 
                                 return Opacity(
                                   opacity: opacity,
@@ -120,20 +144,21 @@ class GameTile extends StatelessWidget {
                 AnimatedOpacity(
                   opacity: isSelected ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 200),
-                  child: isSelected
-                      ? Align(
-                          alignment: Alignment.centerLeft,
-                          child: MarqueeText(
-                            text: game.name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                  child:
+                      isSelected
+                          ? Align(
+                            alignment: Alignment.centerLeft,
+                            child: MarqueeText(
+                              text: game.name,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              containerWidth: 200,
                             ),
-                            containerWidth: 200,
-                          ),
-                        )
-                      : const SizedBox.shrink(),
+                          )
+                          : const SizedBox.shrink(),
                 ),
               ],
             ),
