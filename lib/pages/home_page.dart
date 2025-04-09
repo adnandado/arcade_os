@@ -40,7 +40,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-
+   _focusNode.requestFocus();
     for (int i = 0; i < 3; i++) {
       _switchSoundPlayers.add(AudioPlayer());
     }
@@ -142,48 +142,48 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   void _handleKeyEvent(RawKeyEvent event) {
-    if (event is RawKeyDownEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-        _playRowSound();
-        if (selectedRowIndex > 0) {
-          setState(() {
-            selectedRowIndex--;
-            selectedGameIndex = 0;
-          });
-          scrollToSelection();
-        }
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-        if (selectedRowIndex < 2) {
-          _playRowSound();
+  if (event is RawKeyDownEvent) {
+    if (event.logicalKey == LogicalKeyboardKey.enter) {
+      // Debugging: Print the selected game
+      print('Enter pressed');
+      print('Selected Row: $selectedRowIndex');
+      print('Selected Game: $selectedGameIndex');
 
-          setState(() {
-            selectedRowIndex++;
-            selectedGameIndex = 0;
-          });
-          scrollToSelection();
-        }
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        _playSwitchSound();
-        if (selectedGameIndex > 0) {
-          setState(() {
-            selectedGameIndex--;
-          });
-          scrollToSelection();
-        }
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-        _playSwitchSound();
-        if (selectedGameIndex <
-            _getGameListByRowIndex(selectedRowIndex).length - 1) {
-          setState(() {
-            selectedGameIndex++;
-          });
-          scrollToSelection();
-        }
-      } else if (event.logicalKey == LogicalKeyboardKey.enter) {
-        _startGame(_getGameListByRowIndex(selectedRowIndex)[selectedGameIndex]);
+      // Start the currently selected game
+      final selectedGame =
+          _getGameListByRowIndex(selectedRowIndex)[selectedGameIndex];
+      print('Starting Game: ${selectedGame.name}');
+      _startGame(selectedGame);
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      if (selectedRowIndex < 2) {
+        _playRowSound();
+
+        setState(() {
+          selectedRowIndex++;
+          selectedGameIndex = 0;
+        });
+        scrollToSelection();
+      }
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _playSwitchSound();
+      if (selectedGameIndex > 0) {
+        setState(() {
+          selectedGameIndex--;
+        });
+        scrollToSelection();
+      }
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      _playSwitchSound();
+      if (selectedGameIndex <
+          _getGameListByRowIndex(selectedRowIndex).length - 1) {
+        setState(() {
+          selectedGameIndex++;
+        });
+        scrollToSelection();
       }
     }
   }
+}
 
   List<Game> _getGameListByRowIndex(int index) {
     switch (index) {
