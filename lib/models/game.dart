@@ -61,18 +61,23 @@ class Game {
       //     File(coverImagePath).existsSync()) {
       //   Game? gameFromDB = await _getGameDataFromDB(gameName);
 
-// Find the first .png file in the folder
-    final pngFiles = gameFolder
-        .listSync()
-        .whereType<File>()
-        .where((file) => file.path.endsWith('.png'))
-        .toList();
+      // Find the first .png file in the folder
+      final files = gameFolder.listSync().whereType<File>().toList();
+      final pngFiles =
+          files.where((file) => file.path.endsWith('.png')).toList();
+      final nesFiles =
+          files.where((file) => file.path.endsWith('.nes')).toList();
 
-    if (pngFiles.isNotEmpty) {
-      String coverImagePath = pngFiles.first.path;
-      String executablePath = coverImagePath; // Assuming the executable is the same as the cover image
+      if (pngFiles.isNotEmpty) {
+        String coverImagePath = pngFiles.first.path;
+        String executablePath =
+            nesFiles.isNotEmpty
+                ? nesFiles
+                    .first
+                    .path // NES igra koja zahtijeva emulator
+                : coverImagePath; // Klasična .exe igra// Assuming the executable is the same as the cover image
 
-      Game? gameFromDB = await _getGameDataFromDB(gameName);
+        Game? gameFromDB = await _getGameDataFromDB(gameName);
 
         if (gameFromDB != null) {
           games.add(
