@@ -84,7 +84,7 @@ class _MarqueeTextState extends State<MarqueeText> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: widget.containerWidth + 50,
+      width: 250,
       child: SingleChildScrollView(
         controller: _scrollController,
         scrollDirection: Axis.horizontal,
