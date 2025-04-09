@@ -100,7 +100,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Future<void> _playPerfectSound() async {
     try {
       await _perfectSoundPlayer.stop();
-      await _perfectSoundPlayer.play(AssetSource('sounds/perfect.mp3'));
+      await _perfectSoundPlayer.play(AssetSource('sounds/row-switch.mp3'));
     } catch (e) {
       debugPrint('Error playing perfect sound: $e');
     }
@@ -242,109 +242,110 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: RawKeyboardListener(
-        focusNode: _focusNode,
-        onKey: _handleKeyEvent,
-        child: AnimatedBuilder(
-          animation: _zoomController,
-          builder: (context, child) {
-            return Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/background.png'),
-                  fit: BoxFit.cover,
-                  scale: _zoomAnimation.value,
-                  colorFilter: ColorFilter.mode(
-                    Colors.black.withOpacity(0.4),
-                    BlendMode.darken,
-                  ),
+ @override
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: RawKeyboardListener(
+      focusNode: _focusNode,
+      onKey: _handleKeyEvent,
+      child: AnimatedBuilder(
+        animation: _zoomController,
+        builder: (context, child) {
+          return Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/background.png'),
+                fit: BoxFit.cover,
+                scale: _zoomAnimation.value,
+                colorFilter: ColorFilter.mode(
+                  Colors.black.withOpacity(0.4),
+                  BlendMode.darken,
                 ),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      controller: _verticalScrollController,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildGameRow(
-                            "Most Recently Played",
-                            recentlyPlayed,
-                            0,
-                          ),
-                          _buildGameRow("Popular Games", popularGames, 1),
-                          _buildGameRow("Recently Added", recentlyAdded, 2),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Container(
-                    alignment: Alignment.bottomCenter,
-                    width: double.infinity,
-                    padding: const EdgeInsets.only(right: 8.0, bottom: 8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 25.0),
-                          child: Text(
-                            "v1.0.0",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 15),
-                        Image.asset(
-                          'assets/images/logo1.png',
-                          height: 45,
-                          width: 45,
-                        ),
-                        const SizedBox(width: 15),
-                        Padding(
-                          padding: const EdgeInsets.only(right: 25.0),
-                          child: StreamBuilder<DateTime>(
-                            stream: Stream.periodic(
-                              const Duration(seconds: 1),
-                              (_) => DateTime.now(),
-                            ),
-                            builder: (context, snapshot) {
-                              final currentTime =
-                                  snapshot.data ?? DateTime.now();
-                              final formattedTime =
-                                  "${currentTime.hour.toString().padLeft(2, '0')}:"
-                                  "${currentTime.minute.toString().padLeft(2, '0')}:"
-                                  "${currentTime.second.toString().padLeft(2, '0')}";
-                              return Text(
-                                formattedTime,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+            ),
+            child: Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0), // Padding added
+  child: Column(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [ 
+      Expanded(
+        child: SingleChildScrollView(
+          controller: _verticalScrollController,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildGameRow(
+                "Most Recently Played",
+                recentlyPlayed,
+                0,
               ),
-            );
-          },
+              _buildGameRow("Popular Games", popularGames, 1),
+              _buildGameRow("Recently Added", recentlyAdded, 2),
+            ],
+          ),
         ),
       ),
-    );
-  }
-
+      Container(
+        alignment: Alignment.bottomCenter,
+        width: double.infinity,
+        padding: const EdgeInsets.only(right: 8.0, bottom: 8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 25.0),
+              child: Text(
+                "v1.0.0",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 15),
+            Image.asset(
+              'assets/images/logo1.png',
+              height: 45,
+              width: 45,
+            ),
+            const SizedBox(width: 15),
+            Padding(
+              padding: const EdgeInsets.only(right: 25.0),
+              child: StreamBuilder<DateTime>(
+                stream: Stream.periodic(
+                  const Duration(seconds: 1),
+                  (_) => DateTime.now(),
+                ),
+                builder: (context, snapshot) {
+                  final currentTime = snapshot.data ?? DateTime.now();
+                  final formattedTime =
+                      "${currentTime.hour.toString().padLeft(2, '0')}:" +
+                      "${currentTime.minute.toString().padLeft(2, '0')}:" +
+                      "${currentTime.second.toString().padLeft(2, '0')}";
+                  return Text(
+                    formattedTime,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  ),
+),
+          );
+        },
+      ),
+    ),
+  );
+}
   Widget _buildGameRow(String title, List<Game> games, int rowIndex) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,7 +355,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           child: Text(
             title,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
