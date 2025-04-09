@@ -54,12 +54,25 @@ class Game {
 
     for (var gameFolder in gameFolders) {
       String gameName = basename(gameFolder.path);
-      String executablePath = join(gameFolder.path, '$gameName.png');
-      String coverImagePath = join(gameFolder.path, '$gameName.png');
+      // String executablePath = join(gameFolder.path, '$gameName.png');
+      // String coverImagePath = join(gameFolder.path, '$gameName.png');
 
-      if (File(executablePath).existsSync() &&
-          File(coverImagePath).existsSync()) {
-        Game? gameFromDB = await _getGameDataFromDB(gameName);
+      // if (File(executablePath).existsSync() &&
+      //     File(coverImagePath).existsSync()) {
+      //   Game? gameFromDB = await _getGameDataFromDB(gameName);
+
+// Find the first .png file in the folder
+    final pngFiles = gameFolder
+        .listSync()
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.png'))
+        .toList();
+
+    if (pngFiles.isNotEmpty) {
+      String coverImagePath = pngFiles.first.path;
+      String executablePath = coverImagePath; // Assuming the executable is the same as the cover image
+
+      Game? gameFromDB = await _getGameDataFromDB(gameName);
 
         if (gameFromDB != null) {
           games.add(
