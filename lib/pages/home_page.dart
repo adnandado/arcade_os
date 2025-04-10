@@ -61,26 +61,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late AnimationController _backgroundZoomController;
   late Animation<double> _backgroundZoomAnimation;
 
-  late AnimationController _pauseTextController;
-  late Animation<double> _pauseTextOpacity;
-
-
-  Timer? _inactivityTimer;
-  bool _isPaused = false;
-
-
   @override
   void initState() {
     super.initState();
-   _focusNode.requestFocus();
-   _startInactivityTimer();
     _focusNode.requestFocus();
     _backgroundZoomController = AnimationController(
       vsync: this,
-      duration: Duration(seconds: 100),
-    );
+      duration: Duration(seconds: 20),
+    )..repeat(reverse: true);
 
-    _backgroundZoomAnimation = Tween<double>(begin: 1, end: 1.50).animate(
+    _backgroundZoomAnimation = Tween<double>(begin: 1.1, end: 1.0).animate(
       CurvedAnimation(
         parent: _backgroundZoomController,
         curve: Curves.easeInOut,
@@ -133,17 +123,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _zoomAnimation = Tween<double>(begin: 1.0, end: 3.0).animate(
       CurvedAnimation(parent: _zoomController, curve: Curves.bounceInOut),
     );
-
-    // Flickering animation setup
-  _pauseTextController = AnimationController(
-    vsync: this,
-    duration: Duration(seconds: 1),
-  )..repeat(reverse: true);
-
-  _pauseTextOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
-    CurvedAnimation(parent: _pauseTextController, curve: Curves.easeInOut),
-  );
-
   }
 
   @override
@@ -161,8 +140,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _loadingController.dispose();
     _focusNode.dispose();
     _verticalScrollController.dispose();
-    _inactivityTimer?.cancel();
-     _pauseTextController.dispose();
     for (var controller in _horizontalScrollControllers) {
       controller.dispose();
     }
@@ -387,18 +364,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       _loadGames();
     });
   }
-void _startInactivityTimer() {
-  _inactivityTimer?.cancel();
-  _inactivityTimer = Timer(Duration(minutes: 1), () {
-    setState(() => _isPaused = true);
-  });
-}
-
-void _resetInactivityTimer() {
-  _startInactivityTimer();
-}
-
-
 
   void _startBackgroundChange() {
     _backgroundTimer = Timer.periodic(Duration(seconds: 120), (timer) {
@@ -407,165 +372,11 @@ void _resetInactivityTimer() {
   }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    body: Stack(
-      children: [
-        RawKeyboardListener(
-          focusNode: _focusNode,
-          onKey: (event) {
-            _handleKeyEvent(event);
-            _resetInactivityTimer(); // Reset inactivity timer on key press
-
-            if (_isPaused) {
-              setState(() {
-                _isPaused = false; // Dismiss pause screen
-              });
-            }
-          },
-          child: AnimatedBuilder(
-            animation: _zoomController,
-            builder: (context, child) {
-              return Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage('assets/images/background.png'),
-                    fit: BoxFit.cover,
-                    scale: _zoomAnimation.value,
-                    colorFilter: ColorFilter.mode(
-                      Colors.black.withOpacity(0.4),
-                      BlendMode.darken,
-                    ),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0,
-                    vertical: 20.0,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: SingleChildScrollView(
-                          controller: _verticalScrollController,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildGameRow("Most Recently Played", recentlyPlayed, 0),
-                              _buildGameRow("Popular Games", popularGames, 1),
-                              _buildGameRow("Recently Added", recentlyAdded, 2),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Container(
-                        alignment: Alignment.bottomCenter,
-                        width: double.infinity,
-                        padding: const EdgeInsets.only(right: 8.0, bottom: 8.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(left: 25.0),
-                              child: Text(
-                                "v1.0.0",
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 15),
-                            Image.asset(
-                              'assets/images/logo1.png',
-                              height: 45,
-                              width: 45,
-                            ),
-                            const SizedBox(width: 15),
-                            Padding(
-                              padding: const EdgeInsets.only(right: 25.0),
-                              child: StreamBuilder<DateTime>(
-                                stream: Stream.periodic(
-                                  const Duration(seconds: 1),
-                                  (_) => DateTime.now(),
-                                ),
-                                builder: (context, snapshot) {
-                                  final currentTime = snapshot.data ?? DateTime.now();
-                                  final formattedTime =
-                                      "${currentTime.hour.toString().padLeft(2, '0')}:" +
-                                      "${currentTime.minute.toString().padLeft(2, '0')}:" +
-                                      "${currentTime.second.toString().padLeft(2, '0')}";
-                                  return Text(
-                                    formattedTime,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-
-        // Pause Screen Overlay
-        if (_isPaused)
-  Container(
-    color: Colors.black.withOpacity(0.95),
-    child: Stack(
-      children: [
-        // Flickering image (logo) positioned above the text
-        Positioned(
-          top: 10, // Adjust top to position the image higher or lower
-          left: 0,
-          right: 0,
-          child: Center(
-            child: FadeTransition(
-              opacity: _pauseTextOpacity, // Apply flickering animation to the logo
-              child: Image.asset(
-                'assets/images/logo1.png',
-                width: 500, // Adjust the width of the image
-                height: 500, // Adjust the height of the image
-                fit: BoxFit.contain, // Ensure the image doesn't stretch
-              ),
-            ),
-          ),
-        ),
-
-        // Flickering text
-        Align(
-          alignment: Alignment.center,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 500.0), // Adjust this for text spacing
-            child: FadeTransition(
-              opacity: _pauseTextOpacity, // Apply flickering animation to the text
-              child: Text(
-                'Press any button to continue',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'BarcadeBold',
-                  color: Color.fromRGBO(253, 203, 0, 1),
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
+          // Background with sliding and zoom animations
           AnimatedBuilder(
             animation: Listenable.merge([
               _bgSlideController,
@@ -574,12 +385,16 @@ Widget build(BuildContext context) {
             builder: (context, child) {
               return Stack(
                 children: [
+                  // Current background with zoom
                   AnimatedBuilder(
                     animation: _backgroundZoomController,
                     builder: (context, child) {
                       return Transform.scale(
                         scale: _backgroundZoomAnimation.value,
+                        alignment: Alignment.center,
                         child: Container(
+                          width: double.infinity,
+                          height: double.infinity,
                           decoration: BoxDecoration(
                             image: DecorationImage(
                               image: AssetImage(currentBackgroundImage),
@@ -615,12 +430,12 @@ Widget build(BuildContext context) {
                     ),
                   ),
 
+                  // Dark overlay
                   Container(color: Colors.black.withOpacity(0.4)),
                 ],
               );
             },
           ),
-
           RawKeyboardListener(
             focusNode: _focusNode,
             onKey: _handleKeyEvent,
@@ -806,16 +621,9 @@ Widget build(BuildContext context) {
             ),
           ],
         ),
-      ],
-    ),
-  ),
-
-
-      ],
-    ),
-  );
-}
-
+      ),
+    );
+  }
 
   Widget _buildGameRow(String title, List<Game> games, int rowIndex) {
     return Column(
