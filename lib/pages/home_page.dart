@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -37,10 +38,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late AnimationController _zoomController;
   late Animation<double> _zoomAnimation;
 
+  late AnimationController _pauseTextController;
+  late Animation<double> _pauseTextOpacity;
+
+
+  Timer? _inactivityTimer;
+  bool _isPaused = false;
+
+
   @override
   void initState() {
     super.initState();
    _focusNode.requestFocus();
+   _startInactivityTimer();
     for (int i = 0; i < 3; i++) {
       _switchSoundPlayers.add(AudioPlayer());
     }
@@ -56,6 +66,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _zoomAnimation = Tween<double>(begin: 1.0, end: 3.0).animate(
       CurvedAnimation(parent: _zoomController, curve: Curves.bounceInOut),
     );
+
+    // Flickering animation setup
+  _pauseTextController = AnimationController(
+    vsync: this,
+    duration: Duration(seconds: 1),
+  )..repeat(reverse: true);
+
+  _pauseTextOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+    CurvedAnimation(parent: _pauseTextController, curve: Curves.easeInOut),
+  );
+
   }
 
   @override
@@ -67,6 +88,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _zoomController.dispose();
     _focusNode.dispose();
     _verticalScrollController.dispose();
+    _inactivityTimer?.cancel();
+     _pauseTextController.dispose();
     for (var controller in _horizontalScrollControllers) {
       controller.dispose();
     }
@@ -251,115 +274,158 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       _loadGames();
     });
   }
+void _startInactivityTimer() {
+  _inactivityTimer?.cancel();
+  _inactivityTimer = Timer(Duration(minutes: 1), () {
+    setState(() => _isPaused = true);
+  });
+}
+
+void _resetInactivityTimer() {
+  _startInactivityTimer();
+}
+
+
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: RawKeyboardListener(
-        focusNode: _focusNode,
-        onKey: _handleKeyEvent,
-        child: AnimatedBuilder(
-          animation: _zoomController,
-          builder: (context, child) {
-            return Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/background.png'),
-                  fit: BoxFit.cover,
-                  scale: _zoomAnimation.value,
-                  colorFilter: ColorFilter.mode(
-                    Colors.black.withOpacity(0.4),
-                    BlendMode.darken,
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: Stack(
+      children: [
+        RawKeyboardListener(
+          focusNode: _focusNode,
+          onKey: (event) {
+            _handleKeyEvent(event);
+            _resetInactivityTimer(); // Reset inactivity timer on key press
+
+            if (_isPaused) {
+              setState(() {
+                _isPaused = false; // Dismiss pause screen
+              });
+            }
+          },
+          child: AnimatedBuilder(
+            animation: _zoomController,
+            builder: (context, child) {
+              return Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('assets/images/background.png'),
+                    fit: BoxFit.cover,
+                    scale: _zoomAnimation.value,
+                    colorFilter: ColorFilter.mode(
+                      Colors.black.withOpacity(0.4),
+                      BlendMode.darken,
+                    ),
                   ),
                 ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20.0,
-                  vertical: 20.0,
-                ), // Padding added
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        controller: _verticalScrollController,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20.0,
+                    vertical: 20.0,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          controller: _verticalScrollController,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildGameRow("Most Recently Played", recentlyPlayed, 0),
+                              _buildGameRow("Popular Games", popularGames, 1),
+                              _buildGameRow("Recently Added", recentlyAdded, 2),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Container(
+                        alignment: Alignment.bottomCenter,
+                        width: double.infinity,
+                        padding: const EdgeInsets.only(right: 8.0, bottom: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _buildGameRow(
-                              "Most Recently Played",
-                              recentlyPlayed,
-                              0,
+                            Padding(
+                              padding: const EdgeInsets.only(left: 25.0),
+                              child: Text(
+                                "v1.0.0",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                            _buildGameRow("Popular Games", popularGames, 1),
-                            _buildGameRow("Recently Added", recentlyAdded, 2),
+                            const SizedBox(width: 15),
+                            Image.asset(
+                              'assets/images/logo1.png',
+                              height: 45,
+                              width: 45,
+                            ),
+                            const SizedBox(width: 15),
+                            Padding(
+                              padding: const EdgeInsets.only(right: 25.0),
+                              child: StreamBuilder<DateTime>(
+                                stream: Stream.periodic(
+                                  const Duration(seconds: 1),
+                                  (_) => DateTime.now(),
+                                ),
+                                builder: (context, snapshot) {
+                                  final currentTime = snapshot.data ?? DateTime.now();
+                                  final formattedTime =
+                                      "${currentTime.hour.toString().padLeft(2, '0')}:" +
+                                      "${currentTime.minute.toString().padLeft(2, '0')}:" +
+                                      "${currentTime.second.toString().padLeft(2, '0')}";
+                                  return Text(
+                                    formattedTime,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                    ),
-                    Container(
-                      alignment: Alignment.bottomCenter,
-                      width: double.infinity,
-                      padding: const EdgeInsets.only(right: 8.0, bottom: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 25.0),
-                            child: Text(
-                              "v1.0.0",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 15),
-                          Image.asset(
-                            'assets/images/logo1.png',
-                            height: 45,
-                            width: 45,
-                          ),
-                          const SizedBox(width: 15),
-                          Padding(
-                            padding: const EdgeInsets.only(right: 25.0),
-                            child: StreamBuilder<DateTime>(
-                              stream: Stream.periodic(
-                                const Duration(seconds: 1),
-                                (_) => DateTime.now(),
-                              ),
-                              builder: (context, snapshot) {
-                                final currentTime =
-                                    snapshot.data ?? DateTime.now();
-                                final formattedTime =
-                                    "${currentTime.hour.toString().padLeft(2, '0')}:" +
-                                    "${currentTime.minute.toString().padLeft(2, '0')}:" +
-                                    "${currentTime.second.toString().padLeft(2, '0')}";
-                                return Text(
-                                  formattedTime,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
+        ),
+
+        // Pause Screen Overlay
+        if (_isPaused)
+  Container(
+    color: Colors.black.withOpacity(0.97),
+    child: Center(
+      child: FadeTransition(
+        opacity: _pauseTextOpacity,
+        child: Text(
+          'Press any button to continue',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontFamily: 'BarcadeBold', // Use your custom font only here
+            color: Colors.white,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
-    );
-  }
+    ),
+  ),
+
+      ],
+    ),
+  );
+}
+
 
   Widget _buildGameRow(String title, List<Game> games, int rowIndex) {
     return Column(
