@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -26,24 +27,90 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     ScrollController(),
     ScrollController(),
   ];
-
+  //FIX SWITCH BETWEEN COVERS
   final List<AudioPlayer> _switchSoundPlayers = [];
   final AudioPlayer _perfectSoundPlayer = AudioPlayer();
+  final List<String> _backgroundImages = [
+    'assets/images/bg1.jpg',
+    'assets/images/bg2.jpg',
+    'assets/images/bg3.jpg',
+    'assets/images/bg4.jpg',
+    'assets/images/bg5.jpg',
+    'assets/images/bg6.jpg',
+    'assets/images/bg7.jpg',
+  ];
   int _currentSwitchPlayerIndex = 0;
+  String currentBackgroundImage = 'assets/images/bg1.jpg';
+  String nextBackgroundImage = 'assets/images/bg2.png';
 
   int selectedRowIndex = 0;
   int selectedGameIndex = 0;
+  int _backgroundIndex = 0;
+  late Timer _backgroundTimer;
   FocusNode _focusNode = FocusNode();
   late AnimationController _zoomController;
   late Animation<double> _zoomAnimation;
+  bool _isLoading = false;
+  Game? _selectedGame;
+  late AnimationController _loadingController;
+  late Animation<double> _loadingAnimation;
+  late AnimationController _bgSlideController;
+  late Animation<double> _bgSlideAnimation;
+  late AnimationController _bgFadeController;
+  late Animation<double> _bgFadeAnimation;
+  late AnimationController _backgroundZoomController;
+  late Animation<double> _backgroundZoomAnimation;
 
   @override
   void initState() {
     super.initState();
-   _focusNode.requestFocus();
+    _focusNode.requestFocus();
+    _backgroundZoomController = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 100),
+    );
+
+    _backgroundZoomAnimation = Tween<double>(begin: 1, end: 1.50).animate(
+      CurvedAnimation(
+        parent: _backgroundZoomController,
+        curve: Curves.easeInOut,
+      ),
+    );
+    _bgSlideController = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 1),
+    );
+
+    _bgFadeController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 100),
+    );
+
+    _bgSlideAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.2,
+    ).animate(CurvedAnimation(parent: _bgSlideController, curve: Curves.ease));
+
+    _bgFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.2,
+    ).animate(CurvedAnimation(parent: _bgFadeController, curve: Curves.easeIn));
+
+    _startBackgroundChange();
+
     for (int i = 0; i < 3; i++) {
       _switchSoundPlayers.add(AudioPlayer());
     }
+
+    _loadingController = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 3),
+    )..repeat();
+
+    _loadingAnimation = CurvedAnimation(
+      parent: _loadingController,
+      curve: Curves.linear,
+    );
 
     _loadGames();
     _startWatchingFolder();
@@ -60,17 +127,48 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _backgroundTimer.cancel();
+    _bgSlideController.dispose();
+    _bgFadeController.dispose();
+    _backgroundZoomController.dispose();
+
     for (var player in _switchSoundPlayers) {
       player.dispose();
     }
     _perfectSoundPlayer.dispose();
     _zoomController.dispose();
+    _loadingController.dispose();
     _focusNode.dispose();
     _verticalScrollController.dispose();
     for (var controller in _horizontalScrollControllers) {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  void _changeBackground(Timer timer) {
+    if (!mounted) return;
+
+    setState(() {
+      _backgroundIndex = (_backgroundIndex + 1) % _backgroundImages.length;
+      nextBackgroundImage = _backgroundImages[_backgroundIndex];
+    });
+
+    _bgSlideController.reset();
+    _bgFadeController.reset();
+    _bgSlideController.forward();
+    _bgFadeController.forward();
+
+    _backgroundZoomController.reset();
+    _backgroundZoomController.forward();
+
+    Future.delayed(Duration(milliseconds: 800), () {
+      if (mounted) {
+        setState(() {
+          currentBackgroundImage = nextBackgroundImage;
+        });
+      }
+    });
   }
 
   Future<void> _playSwitchSound() async {
@@ -100,7 +198,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Future<void> _playPerfectSound() async {
     try {
       await _perfectSoundPlayer.stop();
-      await _perfectSoundPlayer.play(AssetSource('sounds/row-switch.mp3'));
+      await _perfectSoundPlayer.play(AssetSource('sounds/perfect.mp3'));
     } catch (e) {
       debugPrint('Error playing perfect sound: $e');
     }
@@ -142,48 +240,49 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   void _handleKeyEvent(RawKeyEvent event) {
-  if (event is RawKeyDownEvent) {
-    if (event.logicalKey == LogicalKeyboardKey.enter) {
-      // Debugging: Print the selected game
-      print('Enter pressed');
-      print('Selected Row: $selectedRowIndex');
-      print('Selected Game: $selectedGameIndex');
-
-      // Start the currently selected game
-      final selectedGame =
-          _getGameListByRowIndex(selectedRowIndex)[selectedGameIndex];
-      print('Starting Game: ${selectedGame.name}');
-      _startGame(selectedGame);
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      if (selectedRowIndex < 2) {
+    if (_isLoading) return;
+    if (event is RawKeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
         _playRowSound();
+        if (selectedRowIndex > 0) {
+          setState(() {
+            selectedRowIndex--;
+            selectedGameIndex = 0;
+          });
+          scrollToSelection();
+        }
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        if (selectedRowIndex < 2) {
+          _playRowSound();
 
-        setState(() {
-          selectedRowIndex++;
-          selectedGameIndex = 0;
-        });
-        scrollToSelection();
-      }
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      _playSwitchSound();
-      if (selectedGameIndex > 0) {
-        setState(() {
-          selectedGameIndex--;
-        });
-        scrollToSelection();
-      }
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      _playSwitchSound();
-      if (selectedGameIndex <
-          _getGameListByRowIndex(selectedRowIndex).length - 1) {
-        setState(() {
-          selectedGameIndex++;
-        });
-        scrollToSelection();
+          setState(() {
+            selectedRowIndex++;
+            selectedGameIndex = 0;
+          });
+          scrollToSelection();
+        }
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        _playSwitchSound();
+        if (selectedGameIndex > 0) {
+          setState(() {
+            selectedGameIndex--;
+          });
+          scrollToSelection();
+        }
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+        _playSwitchSound();
+        if (selectedGameIndex <
+            _getGameListByRowIndex(selectedRowIndex).length - 1) {
+          setState(() {
+            selectedGameIndex++;
+          });
+          scrollToSelection();
+        }
+      } else if (event.logicalKey == LogicalKeyboardKey.enter) {
+        _startGame(_getGameListByRowIndex(selectedRowIndex)[selectedGameIndex]);
       }
     }
   }
-}
 
   List<Game> _getGameListByRowIndex(int index) {
     switch (index) {
@@ -199,9 +298,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Future<void> _startGame(Game game) async {
-    await _playPerfectSound();
+    setState(() {
+      _isLoading = true;
+      _selectedGame = game;
+    });
 
+    await _playPerfectSound();
     GameService.updatePlayData(game.name);
+
+    await Future.delayed(Duration(seconds: 2));
+
     String command = game.executablePath;
 
     try {
@@ -220,6 +326,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       print('Game started: ${game.name}');
     } catch (error) {
       print('Error starting game: $error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _selectedGame = null;
+        });
+      }
     }
   }
 
@@ -252,110 +365,256 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     });
   }
 
+  void _startBackgroundChange() {
+    _backgroundTimer = Timer.periodic(Duration(seconds: 120), (timer) {
+      _changeBackground(timer);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: RawKeyboardListener(
-        focusNode: _focusNode,
-        onKey: _handleKeyEvent,
-        child: AnimatedBuilder(
-          animation: _zoomController,
-          builder: (context, child) {
-            return Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/background.png'),
-                  fit: BoxFit.cover,
-                  scale: _zoomAnimation.value,
-                  colorFilter: ColorFilter.mode(
-                    Colors.black.withOpacity(0.4),
-                    BlendMode.darken,
-                  ),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20.0,
-                  vertical: 20.0,
-                ), // Padding added
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        controller: _verticalScrollController,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildGameRow(
-                              "Most Recently Played",
-                              recentlyPlayed,
-                              0,
+      body: Stack(
+        children: [
+          AnimatedBuilder(
+            animation: Listenable.merge([
+              _bgSlideController,
+              _backgroundZoomController,
+            ]),
+            builder: (context, child) {
+              return Stack(
+                children: [
+                  AnimatedBuilder(
+                    animation: _backgroundZoomController,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _backgroundZoomAnimation.value,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                              image: AssetImage(currentBackgroundImage),
+                              fit: BoxFit.cover,
                             ),
-                            _buildGameRow("Popular Games", popularGames, 1),
-                            _buildGameRow("Recently Added", recentlyAdded, 2),
-                          ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  // Next background sliding in
+                  Positioned.fill(
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: Offset(1.0, 0.0),
+                        end: Offset.zero,
+                      ).animate(_bgSlideController),
+                      child: FadeTransition(
+                        opacity: _bgFadeAnimation,
+                        child: Transform.scale(
+                          scale: _backgroundZoomAnimation.value,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              image: DecorationImage(
+                                image: AssetImage(nextBackgroundImage),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                    Container(
-                      alignment: Alignment.bottomCenter,
-                      width: double.infinity,
-                      padding: const EdgeInsets.only(right: 8.0, bottom: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 25.0),
-                            child: Text(
-                              "v1.0.0",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
+                  ),
+
+                  Container(color: Colors.black.withOpacity(0.4)),
+                ],
+              );
+            },
+          ),
+
+          RawKeyboardListener(
+            focusNode: _focusNode,
+            onKey: _handleKeyEvent,
+            child: AnimatedBuilder(
+              animation: _zoomController,
+              builder: (context, child) {
+                return Container(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0,
+                      vertical: 0.0,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(
+                            controller: _verticalScrollController,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildGameRow(
+                                  "Most Recently Played",
+                                  recentlyPlayed,
+                                  0,
+                                ),
+                                _buildGameRow("Popular Games", popularGames, 1),
+                                _buildGameRow(
+                                  "Recently Added",
+                                  recentlyAdded,
+                                  2,
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 15),
-                          Image.asset(
-                            'assets/images/logo1.png',
-                            height: 45,
-                            width: 45,
+                        ),
+                        Container(
+                          alignment: Alignment.bottomCenter,
+                          width: double.infinity,
+                          padding: const EdgeInsets.only(
+                            right: 8.0,
+                            bottom: 8.0,
                           ),
-                          const SizedBox(width: 15),
-                          Padding(
-                            padding: const EdgeInsets.only(right: 25.0),
-                            child: StreamBuilder<DateTime>(
-                              stream: Stream.periodic(
-                                const Duration(seconds: 1),
-                                (_) => DateTime.now(),
-                              ),
-                              builder: (context, snapshot) {
-                                final currentTime =
-                                    snapshot.data ?? DateTime.now();
-                                final formattedTime =
-                                    "${currentTime.hour.toString().padLeft(2, '0')}:" +
-                                    "${currentTime.minute.toString().padLeft(2, '0')}:" +
-                                    "${currentTime.second.toString().padLeft(2, '0')}";
-                                return Text(
-                                  formattedTime,
-                                  style: const TextStyle(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(left: 25.0),
+                                child: Text(
+                                  "v1.0.0",
+                                  style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black.withOpacity(0.8),
+                                        blurRadius: 2,
+                                        offset: Offset(1, 1),
+                                      ),
+                                    ],
                                   ),
-                                );
-                              },
-                            ),
+                                ),
+                              ),
+                              const SizedBox(width: 15),
+                              Image.asset(
+                                'assets/images/logo1.png',
+                                height: 45,
+                                width: 45,
+                              ),
+                              const SizedBox(width: 15),
+                              Padding(
+                                padding: const EdgeInsets.only(right: 25.0),
+                                child: StreamBuilder<DateTime>(
+                                  stream: Stream.periodic(
+                                    const Duration(seconds: 1),
+                                    (_) => DateTime.now(),
+                                  ),
+                                  builder: (context, snapshot) {
+                                    final currentTime =
+                                        snapshot.data ?? DateTime.now();
+                                    final formattedTime =
+                                        "${currentTime.hour.toString().padLeft(2, '0')}:" +
+                                        "${currentTime.minute.toString().padLeft(2, '0')}:" +
+                                        "${currentTime.second.toString().padLeft(2, '0')}";
+                                    return Text(
+                                      formattedTime,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        shadows: [
+                                          Shadow(
+                                            color: Colors.black.withOpacity(
+                                              0.8,
+                                            ),
+                                            blurRadius: 2,
+                                            offset: Offset(1, 1),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                );
+              },
+            ),
+          ),
+
+          if (_isLoading && _selectedGame != null)
+            _buildLoadingOverlay(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingOverlay(BuildContext context) {
+    return Container(
+      color: Colors.black.withOpacity(0.7),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                image: DecorationImage(
+                  image:
+                      _selectedGame!.coverImagePath.isNotEmpty
+                          ? FileImage(File(_selectedGame!.coverImagePath))
+                          : AssetImage('assets/images/background.png')
+                              as ImageProvider,
+                  fit: BoxFit.cover,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.5),
+                    spreadRadius: 5,
+                    blurRadius: 10,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 30),
+            Text(
+              '${_selectedGame!.name}...',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withOpacity(0.8),
+                    blurRadius: 2,
+                    offset: Offset(1, 1),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 20),
+            RotationTransition(
+              turns: _loadingAnimation,
+              child: Container(
+                width: 25,
+                height: 25,
+                child: CircularProgressIndicator(
+                  strokeWidth: 5,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    const Color.fromARGB(255, 250, 252, 253),
+                  ),
                 ),
               ),
-            );
-          },
+            ),
+          ],
         ),
       ),
     );
@@ -372,7 +631,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: const Color.fromARGB(209, 255, 255, 255),
+              shadows: [
+                Shadow(
+                  color: Colors.black.withOpacity(0.8),
+                  blurRadius: 2,
+                  offset: Offset(1, 1),
+                ),
+              ],
             ),
           ),
         ),

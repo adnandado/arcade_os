@@ -88,6 +88,14 @@ class GameTile extends StatelessWidget {
                                 )
                                 : null,
                         borderRadius: BorderRadius.circular(0),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.6),
+                            spreadRadius: 1,
+                            blurRadius: 5,
+                            offset: const Offset(2, 4),
+                          ),
+                        ],
                       ),
                       child: Stack(
                         children: [
