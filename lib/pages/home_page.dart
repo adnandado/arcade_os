@@ -403,23 +403,51 @@ Widget build(BuildContext context) {
         // Pause Screen Overlay
         if (_isPaused)
   Container(
-    color: Colors.black.withOpacity(0.97),
-    child: Center(
-      child: FadeTransition(
-        opacity: _pauseTextOpacity,
-        child: Text(
-          'Press any button to continue',
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontFamily: 'BarcadeBold', // Use your custom font only here
-            color: Colors.white,
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
+    color: Colors.black.withOpacity(0.95),
+    child: Stack(
+      children: [
+        // Flickering image (logo) positioned above the text
+        Positioned(
+          top: 10, // Adjust top to position the image higher or lower
+          left: 0,
+          right: 0,
+          child: Center(
+            child: FadeTransition(
+              opacity: _pauseTextOpacity, // Apply flickering animation to the logo
+              child: Image.asset(
+                'assets/images/logo1.png',
+                width: 500, // Adjust the width of the image
+                height: 500, // Adjust the height of the image
+                fit: BoxFit.contain, // Ensure the image doesn't stretch
+              ),
+            ),
           ),
         ),
-      ),
+
+        // Flickering text
+        Align(
+          alignment: Alignment.center,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 500.0), // Adjust this for text spacing
+            child: FadeTransition(
+              opacity: _pauseTextOpacity, // Apply flickering animation to the text
+              child: Text(
+                'Press any button to continue',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'BarcadeBold',
+                  color: Color.fromRGBO(253, 203, 0, 1),
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     ),
   ),
+
 
       ],
     ),
