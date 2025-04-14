@@ -33,7 +33,7 @@ class Game {
   }
 
   static Game fromMap(Map<String, dynamic> map, String directoryPath) {
-    String executablePath = join(directoryPath, map['name'] + '.png');
+    String executablePath = join(directoryPath, map['name'] + '.exe');
     String coverImagePath = join(directoryPath, map['name'] + '.png');
 
     return Game(
@@ -54,56 +54,46 @@ class Game {
 
     for (var gameFolder in gameFolders) {
       String gameName = basename(gameFolder.path);
-      // String executablePath = join(gameFolder.path, '$gameName.png');
-      // String coverImagePath = join(gameFolder.path, '$gameName.png');
-
-      // if (File(executablePath).existsSync() &&
-      //     File(coverImagePath).existsSync()) {
-      //   Game? gameFromDB = await _getGameDataFromDB(gameName);
-
-      // Find the first .png file in the folder
       final files = gameFolder.listSync().whereType<File>().toList();
-      final pngFiles =
-          files.where((file) => file.path.endsWith('.png')).toList();
-      final nesFiles =
-          files.where((file) => file.path.endsWith('.nes')).toList();
 
-      if (pngFiles.isNotEmpty) {
-        String coverImagePath = pngFiles.first.path;
-        String executablePath =
-            nesFiles.isNotEmpty
-                ? nesFiles
-                    .first
-                    .path // NES igra koja zahtijeva emulator
-                : coverImagePath; // Klasična .exe igra// Assuming the executable is the same as the cover image
+      String? executablePath;
+      String? coverImagePath;
+      bool isNesGame = false;
 
-        Game? gameFromDB = await _getGameDataFromDB(gameName);
+      for (var file in files) {
+        String path = file.path.toLowerCase();
 
-        if (gameFromDB != null) {
-          games.add(
-            Game(
-              name: gameName,
-              executablePath: executablePath,
-              coverImagePath: coverImagePath,
-              playCount: gameFromDB.playCount,
-              dateAdded: gameFromDB.dateAdded,
-              lastPlayed: gameFromDB.lastPlayed,
-            ),
-          );
-        } else {
-          games.add(
-            Game(
-              name: gameName,
-              executablePath: executablePath,
-              coverImagePath: coverImagePath,
-              playCount: 0,
-              dateAdded: DateTime.now().toIso8601String(),
-              lastPlayed: null,
-            ),
-          );
+        if (path.endsWith('.png') && coverImagePath == null) {
+          coverImagePath = file.path;
+        } else if (path.endsWith('.nes')) {
+          isNesGame = true;
+          if (executablePath == null) {
+            executablePath = file.path;
+          }
+        } else if (!path.endsWith('.png') &&
+            !path.endsWith('.nes') &&
+            executablePath == null) {
+          executablePath = file.path;
         }
       }
+
+      if (executablePath != null && coverImagePath != null) {
+        Game? gameFromDB = await _getGameDataFromDB(gameName);
+
+        games.add(
+          Game(
+            name: gameName,
+            executablePath: executablePath,
+            coverImagePath: coverImagePath,
+            playCount: gameFromDB?.playCount ?? 0,
+            dateAdded:
+                gameFromDB?.dateAdded ?? DateTime.now().toIso8601String(),
+            lastPlayed: gameFromDB?.lastPlayed,
+          ),
+        );
+      }
     }
+
     return games;
   }
 
