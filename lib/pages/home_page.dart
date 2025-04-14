@@ -317,11 +317,11 @@ We want to help students, children & young people, creative souls, entrepreneurs
 Our mission at Garage is to provide students, industry, SMEs/entrepreneurs, artists, and makers with a safe, well-equipped, and knowledgeable environment in which they can explore how traditional, contemporary, and modern processes of making can support new designs or advanced existing, with imagination, creativity, and ingenuity.
 ​
 No matter what your background is, what your resources are, or whatever your maker journey is, Garage Makerspace is here to help. At Garage Makerspace, you can
-● Learn and create through hands-on skills and personalized experiences through workshops and other events we organize
-● Use the makerspace, our resources, and our expertise to come up with innovative solutions
-● Be part of our community of makers and together bring a positive impact to the society
-● Build critical thinking and problem-solving skills
-● Develop a wide range of 21st-century skills
+- Learn and create through hands-on skills and personalized experiences through workshops and other events we organize
+- Use the makerspace, our resources, and our expertise to come up with innovative solutions
+- Be part of our community of makers and together bring a positive impact to the society
+- Build critical thinking and problem-solving skills
+- Develop a wide range of 21st-century skills
 ''',
             );
           } else if (selectedGameIndex == 2) {
@@ -640,8 +640,17 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
           backgroundColor: const Color.fromARGB(255, 0, 0, 0),
           insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
+          child: Padding( 
+          padding: const EdgeInsets.all(16.0), 
           child: Container(
             width: 800,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: Colors.yellow, 
+                width: 3.0, 
+              ),
+             // borderRadius: BorderRadius.circular(8.0), // Zaobljeni uglovi
+            ),
             child: FocusScope(
               node: focusScopeNode,
               child: RawKeyboardListener(
@@ -701,6 +710,7 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
                 ),
               ),
             ),
+          ),
           ),
         );
       },
@@ -885,7 +895,7 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Padding(
-                                padding: const EdgeInsets.only(left: 25.0),
+                                padding: const EdgeInsets.only(left: 50.0),
                                 child: Text(
                                   "v1.0.0",
                                   style: TextStyle(
