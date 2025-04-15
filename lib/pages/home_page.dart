@@ -1,17 +1,15 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
-
 import 'package:arcade_os/config/config.dart';
+import 'package:arcade_os/models/game.dart';
+import 'package:arcade_os/services/game_service.dart';
+import 'package:arcade_os/widgets/game_tile.dart';
 import 'package:arcade_os/widgets/info-section.dart';
 import 'package:flutter/material.dart';
-import 'package:arcade_os/services/game_service.dart';
-import 'package:arcade_os/models/game.dart';
-import 'package:arcade_os/widgets/game_tile.dart';
-import 'package:watcher/watcher.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:watcher/watcher.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -23,6 +21,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   List<Game> popularGames = [];
   List<Game> recentlyAdded = [];
   List<Game> alphabeticallySortedGames = [];
+  List<Game> allGames = [];
+  List<String> hiddenGameNames = [];
 
   DirectoryWatcher? _watcher;
   final ScrollController _verticalScrollController = ScrollController();
@@ -68,6 +68,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late Animation<double> _bgFadeAnimation;
   late AnimationController _backgroundZoomController;
   late Animation<double> _backgroundZoomAnimation;
+  bool _isFiltering = false;
+  bool _areGamesHidden = false;
+
+  // Space hold variables
+  Timer? _spaceHoldTimer;
+  bool _isSpaceHeld = false;
+  Duration _spaceHoldDuration = Duration(seconds: 5);
 
   @override
   void initState() {
@@ -144,7 +151,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       player.dispose();
     }
     _perfectSoundPlayer.dispose();
-
+    _spaceHoldTimer?.cancel();
     _zoomController.dispose();
     _loadingController.dispose();
     _focusNode.dispose();
@@ -230,14 +237,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
       );
 
-      setState(() {
-        game.playCount = dbGame.playCount;
-        game.dateAdded = dbGame.dateAdded;
-        game.lastPlayed = dbGame.lastPlayed;
-      });
+      game.playCount = dbGame.playCount;
+      game.dateAdded = dbGame.dateAdded;
+      game.lastPlayed = dbGame.lastPlayed;
     }
 
     setState(() {
+      allGames = games;
       recentlyPlayed = List.from(games)
         ..sort((a, b) => (b.lastPlayed ?? "").compareTo(a.lastPlayed ?? ""));
       popularGames = List.from(games)
@@ -247,10 +253,49 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       alphabeticallySortedGames = List.from(games)
         ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     });
+    filterGames();
   }
 
   void _handleKeyEvent(RawKeyEvent event) {
     if (_isLoading) return;
+
+    if (event is RawKeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.space) {
+      print("Space key pressed");
+      if (!_isSpaceHeld) {
+        _isSpaceHeld = true;
+        _spaceHoldTimer = Timer(_spaceHoldDuration, () async {
+          if (_isSpaceHeld) {
+            _areGamesHidden = !_areGamesHidden;
+
+            if (_areGamesHidden) {
+              List<String> gamesWithTxt = await Game.getGamesWithTxtFiles(
+                Config.gamesDirectory,
+              );
+              setState(() {
+                hiddenGameNames = gamesWithTxt;
+                filterGames();
+              });
+            } else {
+              setState(() {
+                hiddenGameNames = [];
+                filterGames();
+              });
+            }
+
+            await _playSwitchSound();
+          }
+        });
+      }
+    } else if (event is RawKeyUpEvent &&
+        event.logicalKey == LogicalKeyboardKey.space) {
+      print("Space key released");
+      _isSpaceHeld = false;
+      _spaceHoldTimer?.cancel();
+      _spaceHoldTimer = null;
+    }
+
+    // Handle navigation keys
     if (event is RawKeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
         _playRowSound();
@@ -309,7 +354,7 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
               context,
               'About Garaža Makerspace',
               'Ovo su detaljne informacije za Info 1.',
-              'assets/images/logo2.png',
+              'assets/images/laptop.png',
               '''
 Makerspace Garage is a non-profit, non-governmental innovation organization with a community of makers passionate about positive social and environmental impact. Garaža is a community-based space where creative entrepreneurs, artists, makers, teachers, and students come together to learn and work. 
 We want to help students, children & young people, creative souls, entrepreneurs, and everyone else, to get their start and realize their ideas.​
@@ -340,6 +385,35 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
         }
       }
     }
+  }
+
+  void filterGames() {
+    if (_isFiltering) return;
+    _isFiltering = true;
+
+    setState(() {
+      recentlyPlayed =
+          allGames.where((g) => !hiddenGameNames.contains(g.name)).toList()
+            ..sort(
+              (a, b) => (b.lastPlayed ?? "").compareTo(a.lastPlayed ?? ""),
+            );
+
+      popularGames =
+          allGames.where((g) => !hiddenGameNames.contains(g.name)).toList()
+            ..sort((a, b) => b.playCount.compareTo(a.playCount));
+
+      recentlyAdded =
+          allGames.where((g) => !hiddenGameNames.contains(g.name)).toList()
+            ..sort((a, b) => b.dateAdded.compareTo(a.dateAdded));
+
+      alphabeticallySortedGames =
+          allGames.where((g) => !hiddenGameNames.contains(g.name)).toList()
+            ..sort(
+              (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+            );
+    });
+
+    _isFiltering = false;
   }
 
   int _getMaxIndexForRow(int rowIndex) {
@@ -385,6 +459,15 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
           'start',
           '',
           Config.fceuxPath,
+          command,
+        ]);
+      } else if (command.endsWith('.bin')) {
+        String duckStationPath = Config.duckStationPath;
+        await Process.start('cmd', [
+          '/c',
+          'start',
+          '',
+          duckStationPath,
           command,
         ]);
       } else {
@@ -516,6 +599,8 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
   }
 
   Widget _buildInfoSection() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemWidth = (screenWidth * 0.50).clamp(300.0, 650.0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -551,6 +636,7 @@ Ovdje se može opisati detaljno što sve igra sadrži.
 Više informacija, specifične mehanike i drugo.
 Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
 ''',
+                width: itemWidth,
                 isSelected: selectedRowIndex == 4 && selectedGameIndex == 0,
                 onTap: () {
                   _showInfoDialog(
@@ -566,7 +652,6 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
                   );
                 },
               ),
-
               InfoSection(
                 imagePath: 'assets/images/info2.png',
                 title: 'Garaža Makerspace',
@@ -576,6 +661,7 @@ Ovdje se može opisati detaljno što sve igra sadrži.
 Više informacija, specifične mehanike i drugo.
 Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
 ''',
+                width: itemWidth,
                 isSelected: selectedRowIndex == 4 && selectedGameIndex == 1,
                 onTap: () {
                   _showInfoDialog(
@@ -591,7 +677,6 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
                   );
                 },
               ),
-
               InfoSection(
                 imagePath: 'assets/images/info1.png',
                 title: 'About Arcade OS',
@@ -601,6 +686,7 @@ Ovdje se može opisati detaljno što sve igra sadrži.
 Više informacija, specifične mehanike i drugo.
 Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
 ''',
+                width: itemWidth,
                 isSelected: selectedRowIndex == 4 && selectedGameIndex == 2,
                 onTap: () {
                   _showInfoDialog(
@@ -635,82 +721,111 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
       builder: (context) {
         final focusNode = FocusNode();
         final focusScopeNode = FocusScopeNode();
+        final scrollController = ScrollController();
 
         return Dialog(
-          backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+          backgroundColor: Colors.black,
           insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
-          child: Padding( 
-          padding: const EdgeInsets.all(16.0), 
-          child: Container(
-            width: 800,
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: Colors.yellow, 
-                width: 3.0, 
-              ),
-             // borderRadius: BorderRadius.circular(8.0), // Zaobljeni uglovi
-            ),
-            child: FocusScope(
-              node: focusScopeNode,
-              child: RawKeyboardListener(
-                autofocus: true,
-                focusNode: focusNode,
-                onKey: (RawKeyEvent event) {
-                  if (event is RawKeyDownEvent &&
-                      event.logicalKey == LogicalKeyboardKey.enter) {
+          child: FocusScope(
+            node: focusScopeNode,
+            child: RawKeyboardListener(
+              autofocus: true,
+              focusNode: focusNode,
+              onKey: (RawKeyEvent event) {
+                if (event is RawKeyDownEvent) {
+                  if (event.logicalKey == LogicalKeyboardKey.enter) {
                     Navigator.of(context).pop();
+                  } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                    scrollController.animateTo(
+                      scrollController.offset + 50,
+                      duration: Duration(milliseconds: 150),
+                      curve: Curves.easeInOut,
+                    );
+                  } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                    scrollController.animateTo(
+                      scrollController.offset - 50,
+                      duration: Duration(milliseconds: 150),
+                      curve: Curves.easeInOut,
+                    );
                   }
-                },
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                }
+              },
+              child: Container(
+                width: 900,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: const Color.fromARGB(255, 220, 183, 0),
+                    width: 3.0,
+                  ),
+                ),
+                child: Stack(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(0),
-                      ),
-                      child: Image.asset(
-                        imagePath,
-                        fit: BoxFit.contain,
-                        width: 400,
-                        height: 200,
+                    Positioned.fill(
+                      child: Opacity(
+                        opacity: 0.3,
+                        child: Image.asset(imagePath, fit: BoxFit.cover),
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12.0,
-                        horizontal: 16,
-                      ),
-                      child: Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    Flexible(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: SingleChildScrollView(
-                          physics: BouncingScrollPhysics(),
-                          child: Text(
-                            detailedText,
-                            style: TextStyle(
-                              color: const Color.fromARGB(222, 255, 255, 255),
-                              fontSize: 15,
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 12.0,
+                              horizontal: 16,
                             ),
-                            textAlign: TextAlign.justify,
+                            child: Text(
+                              title,
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: const Color.fromARGB(255, 220, 183, 0),
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(0.8),
+                                    blurRadius: 4,
+                                    offset: Offset(2, 2),
+                                  ),
+                                ],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                        ),
+                          Flexible(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                              ),
+                              child: Scrollbar(
+                                thumbVisibility: true,
+                                controller: scrollController,
+                                child: SingleChildScrollView(
+                                  controller: scrollController,
+                                  physics: BouncingScrollPhysics(),
+                                  child: Text(
+                                    detailedText,
+                                    style: TextStyle(
+                                      color: Color.fromARGB(222, 255, 255, 255),
+                                      fontSize: 20,
+                                      height: 1.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    textAlign: TextAlign.justify,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-          ),
           ),
         );
       },
@@ -965,6 +1080,22 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
           ),
           if (_isLoading && _selectedGame != null)
             _buildLoadingOverlay(context),
+          if (hiddenGameNames.isNotEmpty)
+            Positioned(
+              bottom: 20,
+              right: 20,
+              child: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  "Hidden: ${hiddenGameNames.length} games",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
         ],
       ),
     );

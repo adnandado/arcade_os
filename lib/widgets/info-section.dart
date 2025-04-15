@@ -6,6 +6,7 @@ class InfoSection extends StatelessWidget {
   final String title;
   final String content;
   final bool isSelected;
+  final double width;
   final VoidCallback onTap;
   final String detailedText;
 
@@ -14,7 +15,7 @@ class InfoSection extends StatelessWidget {
     required this.title,
     required this.content,
     required this.detailedText,
-
+    required this.width,
     this.isSelected = false,
     required this.onTap,
     Key? key,
@@ -22,9 +23,11 @@ class InfoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double itemWidth = screenWidth * 0.35;
     return SizedBox(
-      height: 375, // Zadržavamo zbog scrollToSelection
-      width: 485,
+      height: 375,
+      width: width,
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
@@ -40,7 +43,6 @@ class InfoSection extends StatelessWidget {
             margin: const EdgeInsets.all(8.0),
             child: Stack(
               children: [
-                // Slika
                 Container(
                   height: 250,
                   width: double.infinity,
@@ -68,13 +70,11 @@ class InfoSection extends StatelessWidget {
                     child: Image.asset(imagePath, fit: BoxFit.cover),
                   ),
                 ),
-                // Overlay + tekst
                 Container(
                   height: 250,
                   width: double.infinity,
                   color: Colors.black.withOpacity(0.3),
                 ),
-                // Naslov
                 Positioned(
                   left: 16,
                   bottom: 20,

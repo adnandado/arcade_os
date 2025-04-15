@@ -47,6 +47,26 @@ class Game {
     );
   }
 
+  static Future<List<String>> getGamesWithTxtFiles(String directoryPath) async {
+    List<String> gamesWithTxt = [];
+
+    final directory = Directory(directoryPath);
+    final gameFolders = directory.listSync().whereType<Directory>();
+
+    for (var folder in gameFolders) {
+      final files = folder.listSync().whereType<File>();
+      final hasTxt = files.any(
+        (file) => file.path.toLowerCase().endsWith('.txt'),
+      );
+
+      if (hasTxt) {
+        gamesWithTxt.add(basename(folder.path));
+      }
+    }
+
+    return gamesWithTxt;
+  }
+
   static Future<List<Game>> getGamesFromDirectory(String directoryPath) async {
     List<Game> games = [];
     final directory = Directory(directoryPath);
@@ -62,7 +82,9 @@ class Game {
 
       for (var file in files) {
         String path = file.path.toLowerCase();
-
+        if (path.endsWith('.txt')) {
+          continue;
+        }
         if (path.endsWith('.png') && coverImagePath == null) {
           coverImagePath = file.path;
         } else if (path.endsWith('.nes')) {
