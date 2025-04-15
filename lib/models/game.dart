@@ -78,23 +78,20 @@ class Game {
 
       String? executablePath;
       String? coverImagePath;
-      bool isNesGame = false;
 
       for (var file in files) {
         String path = file.path.toLowerCase();
-        if (path.endsWith('.txt')) {
-          continue;
-        }
+
+        if (path.endsWith('.txt')) continue;
         if (path.endsWith('.png') && coverImagePath == null) {
           coverImagePath = file.path;
-        } else if (path.endsWith('.nes')) {
-          isNesGame = true;
-          if (executablePath == null) {
-            executablePath = file.path;
-          }
-        } else if (!path.endsWith('.png') &&
-            !path.endsWith('.nes') &&
-            executablePath == null) {
+        } else if (path.endsWith('.cue') && executablePath == null) {
+          executablePath = file.path;
+        } else if (path.endsWith('.bin') && executablePath == null) {
+          executablePath = file.path;
+        } else if (path.endsWith('.nes') && executablePath == null) {
+          executablePath = file.path;
+        } else if (!path.endsWith('.png') && executablePath == null) {
           executablePath = file.path;
         }
       }

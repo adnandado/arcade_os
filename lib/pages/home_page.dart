@@ -71,10 +71,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   bool _isFiltering = false;
   bool _areGamesHidden = false;
 
-  // Space hold variables
   Timer? _spaceHoldTimer;
   bool _isSpaceHeld = false;
-  Duration _spaceHoldDuration = Duration(seconds: 5);
+  Duration _spaceHoldDuration = Duration(seconds: 8);
 
   @override
   void initState() {
@@ -260,7 +259,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (_isLoading) return;
 
     if (event is RawKeyDownEvent &&
-        event.logicalKey == LogicalKeyboardKey.space) {
+        event.logicalKey == LogicalKeyboardKey.keyH) {
       print("Space key pressed");
       if (!_isSpaceHeld) {
         _isSpaceHeld = true;
@@ -288,14 +287,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         });
       }
     } else if (event is RawKeyUpEvent &&
-        event.logicalKey == LogicalKeyboardKey.space) {
+        event.logicalKey == LogicalKeyboardKey.keyH) {
       print("Space key released");
       _isSpaceHeld = false;
       _spaceHoldTimer?.cancel();
       _spaceHoldTimer = null;
     }
 
-    // Handle navigation keys
     if (event is RawKeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
         _playRowSound();
@@ -462,13 +460,21 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
           command,
         ]);
       } else if (command.endsWith('.bin')) {
-        String duckStationPath = Config.duckStationPath;
+        final binFile = File(command);
+        final cuePath = command.replaceAll(
+          RegExp(r'\.bin$', caseSensitive: false),
+          '.cue',
+        );
+        final cueFile = File(cuePath);
+
+        String fileToRun = await cueFile.exists() ? cuePath : command;
+
         await Process.start('cmd', [
           '/c',
           'start',
           '',
-          duckStationPath,
-          command,
+          Config.duckStationPath,
+          fileToRun,
         ]);
       } else {
         await Process.start('cmd', ['/c', 'start', '', command]);
@@ -485,6 +491,7 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
         });
       }
     }
+    _loadGames();
   }
 
   void scrollToSelection() {
