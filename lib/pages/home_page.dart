@@ -44,8 +44,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     'assets/images/bg5.jpg',
     'assets/images/bg6.jpg',
     'assets/images/bg7.jpg',
-    'assets/images/bg8.png',
-    'assets/images/bg9.png',
+    'assets/images/bg8.jpg',
+    'assets/images/bg9.jpg',
+    'assets/images/bg10.jpg',
   ];
 
   int _currentSwitchPlayerIndex = 0;
@@ -258,8 +259,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void _handleKeyEvent(RawKeyEvent event) {
     if (_isLoading) return;
 
-    if (event is RawKeyDownEvent &&
-        event.logicalKey == LogicalKeyboardKey.keyH) {
+    if (RawKeyboard.instance.keysPressed.contains(LogicalKeyboardKey.keyI) &&
+        RawKeyboard.instance.keysPressed.contains(LogicalKeyboardKey.numpad8)) {
       print("Space key pressed");
       if (!_isSpaceHeld) {
         _isSpaceHeld = true;
@@ -286,16 +287,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           }
         });
       }
-    } else if (event is RawKeyUpEvent &&
-        event.logicalKey == LogicalKeyboardKey.keyH) {
-      print("Space key released");
-      _isSpaceHeld = false;
-      _spaceHoldTimer?.cancel();
-      _spaceHoldTimer = null;
+    } else if (event is RawKeyUpEvent) {
+      if (!RawKeyboard.instance.keysPressed.contains(LogicalKeyboardKey.keyI) ||
+          !RawKeyboard.instance.keysPressed.contains(
+            LogicalKeyboardKey.numpad8,
+          )) {
+        _isSpaceHeld = false;
+        _spaceHoldTimer?.cancel();
+        _spaceHoldTimer = null;
+      }
     }
 
     if (event is RawKeyDownEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+          event.logicalKey == LogicalKeyboardKey.keyW) {
         _playRowSound();
         if (selectedRowIndex > 0) {
           setState(() {
@@ -304,7 +309,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           });
           scrollToSelection();
         }
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowDown ||
+          event.logicalKey == LogicalKeyboardKey.keyS) {
         if (selectedRowIndex < 4) {
           _playRowSound();
           setState(() {
@@ -313,7 +319,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           });
           scrollToSelection();
         }
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+          event.logicalKey == LogicalKeyboardKey.keyA) {
         _playSwitchSound();
         if (selectedGameIndex > 0) {
           setState(() {
@@ -321,7 +328,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           });
           scrollToSelection();
         }
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
+          event.logicalKey == LogicalKeyboardKey.keyD) {
         _playSwitchSound();
         if (selectedGameIndex < _getMaxIndexForRow(selectedRowIndex)) {
           setState(() {
@@ -329,7 +337,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           });
           scrollToSelection();
         }
-      } else if (event.logicalKey == LogicalKeyboardKey.enter) {
+      } else if (event.logicalKey == LogicalKeyboardKey.keyK ||
+          event.logicalKey == LogicalKeyboardKey.numpad2 ||
+          event.logicalKey == LogicalKeyboardKey.numpad7) {
         if (selectedRowIndex < 4) {
           _startGame(
             _getGameListByRowIndex(selectedRowIndex)[selectedGameIndex],
@@ -741,15 +751,18 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
               focusNode: focusNode,
               onKey: (RawKeyEvent event) {
                 if (event is RawKeyDownEvent) {
-                  if (event.logicalKey == LogicalKeyboardKey.enter) {
+                  if (event.logicalKey == LogicalKeyboardKey.keyK ||
+                      event.logicalKey == LogicalKeyboardKey.numpad2) {
                     Navigator.of(context).pop();
-                  } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                  } else if (event.logicalKey == LogicalKeyboardKey.arrowDown ||
+                      event.logicalKey == LogicalKeyboardKey.keyS) {
                     scrollController.animateTo(
                       scrollController.offset + 50,
                       duration: Duration(milliseconds: 150),
                       curve: Curves.easeInOut,
                     );
-                  } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                  } else if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+                      event.logicalKey == LogicalKeyboardKey.keyW) {
                     scrollController.animateTo(
                       scrollController.offset - 50,
                       duration: Duration(milliseconds: 150),
@@ -1098,8 +1111,10 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  "Hidden: ${hiddenGameNames.length} games",
-                  style: TextStyle(color: Colors.white),
+                  "!!!",
+                  style: TextStyle(
+                    color: const Color.fromARGB(18, 255, 255, 255),
+                  ),
                 ),
               ),
             ),
