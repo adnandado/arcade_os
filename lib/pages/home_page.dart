@@ -348,9 +348,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           if (selectedGameIndex == 0) {
             _showInfoDialog(
               context,
-              'About Garaža Makerspace',
+              'About Arcade OS',
               'Ovo su detaljne informacije za Info 1.',
-              'assets/images/info1.png',
+              'assets/images/arcade.png',
               '''
 Ovdje se može opisati detaljno što sve igra sadrži.
 Više informacija, specifične mehanike i drugo.
@@ -378,17 +378,25 @@ No matter what your background is, what your resources are, or whatever your mak
 ''',
             );
           } else if (selectedGameIndex == 2) {
-            _showInfoDialog(
-              context,
-              'About Arcade OS',
-              'Ovo su detaljne informacije za Info 1.',
-              'assets/images/info1.png',
-              '''
-Ovdje se može opisati detaljno što sve igra sadrži.
-Više informacija, specifične mehanike i drugo.
-Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
-''',
+            final showcaseGame = allGames.firstWhere(
+              (g) => g.executablePath.toLowerCase().contains('garaza showcase'),
+              orElse:
+                  () => Game(
+                    name: '',
+                    executablePath: '',
+                    coverImagePath: '',
+                    playCount: 0,
+                    dateAdded: '',
+                    lastPlayed: null,
+                  ),
             );
+            if (showcaseGame.executablePath.isNotEmpty) {
+              _startGame(showcaseGame);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Garaza Showcase igra nije pronađena!')),
+              );
+            }
           }
         }
       }
@@ -401,21 +409,45 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
 
     setState(() {
       recentlyPlayed =
-          allGames.where((g) => !hiddenGameNames.contains(g.name)).toList()
+          allGames
+              .where(
+                (g) =>
+                    !hiddenGameNames.contains(g.name) &&
+                    !g.name.toLowerCase().contains('garaza'),
+              )
+              .toList()
             ..sort(
               (a, b) => (b.lastPlayed ?? "").compareTo(a.lastPlayed ?? ""),
             );
 
       popularGames =
-          allGames.where((g) => !hiddenGameNames.contains(g.name)).toList()
+          allGames
+              .where(
+                (g) =>
+                    !hiddenGameNames.contains(g.name) &&
+                    !g.name.toLowerCase().contains('garaza'),
+              )
+              .toList()
             ..sort((a, b) => b.playCount.compareTo(a.playCount));
 
       recentlyAdded =
-          allGames.where((g) => !hiddenGameNames.contains(g.name)).toList()
+          allGames
+              .where(
+                (g) =>
+                    !hiddenGameNames.contains(g.name) &&
+                    !g.name.toLowerCase().contains('garaza'),
+              )
+              .toList()
             ..sort((a, b) => b.dateAdded.compareTo(a.dateAdded));
 
       alphabeticallySortedGames =
-          allGames.where((g) => !hiddenGameNames.contains(g.name)).toList()
+          allGames
+              .where(
+                (g) =>
+                    !hiddenGameNames.contains(g.name) &&
+                    !g.name.toLowerCase().contains('garaza'),
+              )
+              .toList()
             ..sort(
               (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
             );
@@ -616,113 +648,83 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
   }
 
   Widget _buildInfoSection() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final itemWidth = (screenWidth * 0.50).clamp(300.0, 650.0);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text(
-            "Garaža Makerspace",
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: const Color.fromARGB(209, 255, 255, 255),
-              shadows: [
-                Shadow(
-                  color: Colors.black.withOpacity(0.8),
-                  blurRadius: 2,
-                  offset: Offset(1, 1),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final sectionCount = 3;
+        final itemWidth = (constraints.maxWidth / sectionCount).clamp(
+          200.0,
+          600.0,
+        );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                "Garaža Makerspace",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: const Color.fromARGB(209, 255, 255, 255),
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 2,
+                      offset: Offset(1, 1),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-        Container(
-          height: 250,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              InfoSection(
-                imagePath: 'assets/images/info1.png',
-                title: 'Arcade OS',
-                content: 'Ovo su detaljne informacije za Info 1.',
-                detailedText: '''
+            Container(
+              height: 250,
+              child: Row(
+                children: [
+                  for (int i = 0; i < sectionCount; i++)
+                    Expanded(
+                      child: InfoSection(
+                        imagePath:
+                            [
+                              'assets/images/info1.png',
+                              'assets/images/info2.png',
+                              'assets/images/info3.png',
+                            ][i],
+                        title: ['', '', ''][i],
+                        content: 'Ovo su detaljne informacije za Info 1.',
+                        detailedText: '''
 Ovdje se može opisati detaljno što sve igra sadrži.
 Više informacija, specifične mehanike i drugo.
 Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
 ''',
-                width: itemWidth,
-                isSelected: selectedRowIndex == 4 && selectedGameIndex == 0,
-                onTap: () {
-                  _showInfoDialog(
-                    context,
-                    'About Ar',
-                    'Ovo su detaljne informacije za Info 1.',
-                    'assets/images/info1.png',
-                    '''
+                        width: itemWidth,
+                        isSelected:
+                            selectedRowIndex == 4 && selectedGameIndex == i,
+                        onTap: () {
+                          _showInfoDialog(
+                            context,
+                            'Info ${i + 1}',
+                            'Ovo su detaljne informacije za Info 1.',
+                            [
+                              'assets/images/info1.png',
+                              'assets/images/info2.png',
+                              'assets/images/info3.png',
+                            ][i],
+                            '''
 Ovdje se može opisati detaljno što sve igra sadrži.
 Više informacija, specifične mehanike i drugo.
 Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
 ''',
-                  );
-                },
+                          );
+                        },
+                      ),
+                    ),
+                ],
               ),
-              InfoSection(
-                imagePath: 'assets/images/info2.png',
-                title: 'Garaža Makerspace',
-                content: 'Ovo su detaljne informacije za Info 1.',
-                detailedText: '''
-Ovdje se može opisati detaljno što sve igra sadrži.
-Više informacija, specifične mehanike i drugo.
-Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
-''',
-                width: itemWidth,
-                isSelected: selectedRowIndex == 4 && selectedGameIndex == 1,
-                onTap: () {
-                  _showInfoDialog(
-                    context,
-                    'Info 1',
-                    'Ovo su detaljne informacije za Info 1.',
-                    'assets/images/info1.png',
-                    '''
-Ovdje se može opisati detaljno što sve igra sadrži.
-Više informacija, specifične mehanike i drugo.
-Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
-''',
-                  );
-                },
-              ),
-              InfoSection(
-                imagePath: 'assets/images/info1.png',
-                title: 'About Arcade OS',
-                content: 'Ovo su detaljne informacije za Info 1.',
-                detailedText: '''
-Ovdje se može opisati detaljno što sve igra sadrži.
-Više informacija, specifične mehanike i drugo.
-Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
-''',
-                width: itemWidth,
-                isSelected: selectedRowIndex == 4 && selectedGameIndex == 2,
-                onTap: () {
-                  _showInfoDialog(
-                    context,
-                    'Info 1',
-                    'Ovo su detaljne informacije za Info 1.',
-                    'assets/images/info1.png',
-                    '''
-Ovdje se može opisati detaljno što sve igra sadrži.
-Više informacija, specifične mehanike i drugo.
-Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
-''',
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -73,7 +73,7 @@ class InfoSection extends StatelessWidget {
                 Container(
                   height: 250,
                   width: double.infinity,
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withOpacity(0.1),
                 ),
                 Positioned(
                   left: 16,

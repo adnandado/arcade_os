@@ -79,6 +79,24 @@ class Game {
       String? executablePath;
       String? coverImagePath;
 
+      if (gameName.toLowerCase().contains('garaza')) {
+        if (files.isNotEmpty) {
+          var file = files.first;
+          print('Dodajem Garaza fajl: ${file.path}');
+          games.add(
+            Game(
+              name: gameName,
+              executablePath: file.path,
+              coverImagePath: 'assets/images/info3.png',
+              playCount: 0,
+              dateAdded: file.statSync().changed.toIso8601String(),
+              lastPlayed: null,
+            ),
+          );
+        }
+        continue;
+      }
+
       for (var file in files) {
         String path = file.path.toLowerCase();
 
