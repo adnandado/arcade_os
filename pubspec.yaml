@@ -82,6 +82,8 @@ flutter:
     - assets/sounds/perfect.mp3
     - assets/sounds/switch.mp3
     - assets/sounds/row-switch.mp3
+    - assets/sounds/koth.mp3
+    - assets/sounds/kothsong.mp3
     - assets/videos/background.mp4
     - assets/images/bg1.jpg
     - assets/images/bg2.jpg
@@ -94,7 +96,6 @@ flutter:
     - assets/images/bg9.jpg
     - assets/images/bg10.jpg
     - assets/images/arcade.png
-
     - assets/images/laptop.png
 
   # To add assets to your application, add an assets section, like this:

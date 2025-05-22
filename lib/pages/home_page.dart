@@ -75,6 +75,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Timer? _spaceHoldTimer;
   bool _isSpaceHeld = false;
   Duration _spaceHoldDuration = Duration(seconds: 8);
+  Duration _Koth = Duration(seconds: 14);
 
   @override
   void initState() {
@@ -210,12 +211,41 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _playKoth() async {
+    try {
+      final player = _switchSoundPlayers[_currentSwitchPlayerIndex];
+      await player.stop();
+      await player.play(AssetSource('sounds/koth.mp3'));
+    } catch (e) {
+      debugPrint('Error playing switch sound: $e');
+    }
+  }
+
+  Future<void> _playKoth2() async {
+    try {
+      final player = _switchSoundPlayers[_currentSwitchPlayerIndex];
+      await player.stop();
+      await player.play(AssetSource('sounds/kothsong.mp3'));
+    } catch (e) {
+      debugPrint('Error playing switch sound: $e');
+    }
+  }
+
   Future<void> _playPerfectSound() async {
     try {
       await _perfectSoundPlayer.stop();
       await _perfectSoundPlayer.play(AssetSource('sounds/perfect.mp3'));
     } catch (e) {
       debugPrint('Error playing perfect sound: $e');
+    }
+  }
+
+  Future<String> readTextFile(String path) async {
+    try {
+      final file = File(path);
+      return await file.readAsString();
+    } catch (e) {
+      return 'Tekst nije pronađen ($path)';
     }
   }
 
@@ -287,6 +317,30 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           }
         });
       }
+    } else if (RawKeyboard.instance.keysPressed.contains(
+      LogicalKeyboardKey.keyL,
+    )) {
+      print("Space key pressed");
+      if (!_isSpaceHeld) {
+        _isSpaceHeld = true;
+        _spaceHoldTimer = Timer(_Koth, () async {
+          if (_isSpaceHeld) {
+            await _playKoth();
+          }
+        });
+      }
+    } else if (RawKeyboard.instance.keysPressed.contains(
+      LogicalKeyboardKey.keyJ,
+    )) {
+      print("Space key pressed");
+      if (!_isSpaceHeld) {
+        _isSpaceHeld = true;
+        _spaceHoldTimer = Timer(_Koth, () async {
+          if (_isSpaceHeld) {
+            await _playKoth2();
+          }
+        });
+      }
     } else if (event is RawKeyUpEvent) {
       if (!RawKeyboard.instance.keysPressed.contains(LogicalKeyboardKey.keyI) ||
           !RawKeyboard.instance.keysPressed.contains(
@@ -346,36 +400,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           );
         } else if (selectedRowIndex == 4) {
           if (selectedGameIndex == 0) {
-            _showInfoDialog(
+            _showInfoDialogFromFile(
               context,
-              'About Arcade OS',
-              'Ovo su detaljne informacije za Info 1.',
+              'About our Arcade',
               'assets/images/arcade.png',
-              '''
-Ovdje se može opisati detaljno što sve igra sadrži.
-Više informacija, specifične mehanike i drugo.
-Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
-''',
+              Config.gamesDirectory + '/about_arcade.txt',
             );
           } else if (selectedGameIndex == 1) {
-            _showInfoDialog(
+            _showInfoDialogFromFile(
               context,
               'About Garaža Makerspace',
-              'Ovo su detaljne informacije za Info 1.',
               'assets/images/laptop.png',
-              '''
-Makerspace Garage is a non-profit, non-governmental innovation organization with a community of makers passionate about positive social and environmental impact. Garaža is a community-based space where creative entrepreneurs, artists, makers, teachers, and students come together to learn and work. 
-We want to help students, children & young people, creative souls, entrepreneurs, and everyone else, to get their start and realize their ideas.​
-
-Our mission at Garage is to provide students, industry, SMEs/entrepreneurs, artists, and makers with a safe, well-equipped, and knowledgeable environment in which they can explore how traditional, contemporary, and modern processes of making can support new designs or advanced existing, with imagination, creativity, and ingenuity.
-​
-No matter what your background is, what your resources are, or whatever your maker journey is, Garage Makerspace is here to help. At Garage Makerspace, you can
-- Learn and create through hands-on skills and personalized experiences through workshops and other events we organize
-- Use the makerspace, our resources, and our expertise to come up with innovative solutions
-- Be part of our community of makers and together bring a positive impact to the society
-- Build critical thinking and problem-solving skills
-- Develop a wide range of 21st-century skills
-''',
+              Config.gamesDirectory + '/about_garaza.txt',
             );
           } else if (selectedGameIndex == 2) {
             final showcaseGame = allGames.firstWhere(
@@ -454,6 +490,161 @@ No matter what your background is, what your resources are, or whatever your mak
     });
 
     _isFiltering = false;
+  }
+
+  void _showInfoDialogFromFile(
+    BuildContext context,
+    String title,
+    String imagePath,
+    String txtFilePath,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final focusNode = FocusNode();
+        final focusScopeNode = FocusScopeNode();
+        final scrollController = ScrollController();
+
+        return FutureBuilder<String>(
+          future: readTextFile(txtFilePath),
+          builder: (context, snapshot) {
+            final detailedText = snapshot.data ?? 'Učitavanje...';
+
+            return Dialog(
+              backgroundColor: Colors.black,
+              insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(0),
+              ),
+              child: FocusScope(
+                node: focusScopeNode,
+                child: RawKeyboardListener(
+                  autofocus: true,
+                  focusNode: focusNode,
+                  onKey: (RawKeyEvent event) {
+                    if (event is RawKeyDownEvent) {
+                      if (event.logicalKey == LogicalKeyboardKey.keyK ||
+                          event.logicalKey == LogicalKeyboardKey.numpad2) {
+                        Navigator.of(context).pop();
+                      } else if (event.logicalKey ==
+                              LogicalKeyboardKey.arrowDown ||
+                          event.logicalKey == LogicalKeyboardKey.keyS) {
+                        scrollController.animateTo(
+                          scrollController.offset + 50,
+                          duration: Duration(milliseconds: 150),
+                          curve: Curves.easeInOut,
+                        );
+                      } else if (event.logicalKey ==
+                              LogicalKeyboardKey.arrowUp ||
+                          event.logicalKey == LogicalKeyboardKey.keyW) {
+                        scrollController.animateTo(
+                          scrollController.offset - 50,
+                          duration: Duration(milliseconds: 150),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+                    }
+                  },
+                  child: Container(
+                    width: 900,
+                    height: 600,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: const Color.fromARGB(255, 220, 183, 0),
+                        width: 1.0,
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Opacity(
+                            opacity: 0.1,
+                            child: Image.asset(imagePath, fit: BoxFit.cover),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12.0,
+                                  horizontal: 16,
+                                ),
+                                child: Text(
+                                  title,
+                                  style: TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color.fromARGB(
+                                      255,
+                                      220,
+                                      183,
+                                      0,
+                                    ),
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black.withOpacity(0.8),
+                                        blurRadius: 4,
+                                        offset: Offset(2, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  textAlign: TextAlign.left,
+                                ),
+                              ),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0,
+                                  ),
+                                  child: Scrollbar(
+                                    thumbVisibility: true,
+                                    controller: scrollController,
+                                    child: SingleChildScrollView(
+                                      controller: scrollController,
+                                      physics: BouncingScrollPhysics(),
+                                      child: Center(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 16,
+                                          ),
+                                          child: Text(
+                                            detailedText,
+                                            style: TextStyle(
+                                              color: Color.fromARGB(
+                                                222,
+                                                255,
+                                                255,
+                                                255,
+                                              ),
+                                              fontSize: 16,
+                                              height: 1.2,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            textAlign: TextAlign.left,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   int _getMaxIndexForRow(int rowIndex) {
@@ -803,7 +994,7 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
                               title,
                               style: TextStyle(
                                 fontSize: 26,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w700,
                                 color: const Color.fromARGB(255, 220, 183, 0),
                                 shadows: [
                                   Shadow(
@@ -833,7 +1024,7 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
                                       color: Color.fromARGB(222, 255, 255, 255),
                                       fontSize: 20,
                                       height: 1.5,
-                                      fontWeight: FontWeight.w700,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                     textAlign: TextAlign.justify,
                                   ),
@@ -868,9 +1059,9 @@ Ovaj tekst je dug i bit će prikazan u scrollable dijalogu.
                 borderRadius: BorderRadius.circular(4),
                 image: DecorationImage(
                   image:
-                      _selectedGame!.coverImagePath.isNotEmpty
-                          ? FileImage(File(_selectedGame!.coverImagePath))
-                          : AssetImage('assets/images/background.png')
+                      _selectedGame!.coverImagePath.startsWith('assets/')
+                          ? AssetImage(_selectedGame!.coverImagePath)
+                          : FileImage(File(_selectedGame!.coverImagePath))
                               as ImageProvider,
                   fit: BoxFit.cover,
                 ),
